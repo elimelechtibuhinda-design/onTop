@@ -9,8 +9,8 @@ import { renderSounds } from "../components/sounds.js";
 import { openDialog, confirmDialog, toast } from "../components/ui.js";
 
 const THEME_SWATCH = {
-  ubc: "linear-gradient(135deg,#002145,#0055B7 60%,#F2A900)",
-  "ubc-dark": "linear-gradient(135deg,#040c16,#13263c 60%,#40B4E5)",
+  classic: "linear-gradient(135deg,#002145,#0055B7 60%,#F2A900)",
+  midnight: "linear-gradient(135deg,#040c16,#13263c 60%,#40B4E5)",
   library: "linear-gradient(135deg,#3a2414,#7b4a24 60%,#e9b65c)",
   nightsky: "linear-gradient(135deg,#06061a,#2a2766 60%,#ffd36b)",
   matcha: "linear-gradient(135deg,#2f4a22,#5a8a3a 60%,#c8e09a)",

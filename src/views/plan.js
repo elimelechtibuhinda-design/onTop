@@ -392,10 +392,10 @@ function reviews(el) {
 }
 
 /* ================= Grades ================= */
-export const UBC_SCALE = [
+export const GRADE_SCALE = [
   ["A+", 90], ["A", 85], ["A-", 80], ["B+", 76], ["B", 72], ["B-", 68], ["C+", 64], ["C", 60], ["C-", 55], ["D", 50], ["F", 0],
 ];
-export const letterFor = (pct) => (UBC_SCALE.find(([, min]) => pct >= min) || ["F"])[0];
+export const letterFor = (pct) => (GRADE_SCALE.find(([, min]) => pct >= min) || ["F"])[0];
 
 export function gradeSummary(courseId) {
   const items = S().grades.filter((g) => g.courseId === courseId);
@@ -423,7 +423,7 @@ function grades(el, rerender) {
   const remainingNames = s.items.filter((g) => g.score === null || g.score === "" || g.score === undefined).map((g) => g.name).join(" + ") || "remaining work";
   el.innerHTML = `
     <div class="row between wrap" style="margin-bottom:12px">
-      <div><h2>Grade tracker</h2><p class="small muted">Enter weights and marks. Uses the UBC percentage → letter scale.</p></div>
+      <div><h2>Grade tracker</h2><p class="small muted">Enter weights and marks. Uses a standard percentage → letter scale (A+ = 90%+).</p></div>
       <select data-course style="width:auto">${st.courses.map((x) => `<option value="${x.id}" ${x.id === c.id ? "selected" : ""}>${esc(x.emoji)} ${esc(x.name)}</option>`).join("")}</select>
     </div>
     <div class="grid-2">
@@ -453,7 +453,7 @@ function grades(el, rerender) {
         <div class="card">
           <h3>What do I need on the final?</h3>
           <label class="row" style="margin-top:10px"><span class="grow">I want a</span>
-            <select data-target style="width:auto">${UBC_SCALE.slice(0, -1).map(([l, m]) => `<option value="${m}" ${m === target ? "selected" : ""}>${l} (${m}%+)</option>`).join("")}</select></label>
+            <select data-target style="width:auto">${GRADE_SCALE.slice(0, -1).map(([l, m]) => `<option value="${m}" ${m === target ? "selected" : ""}>${l} (${m}%+)</option>`).join("")}</select></label>
           <p style="margin-top:12px">${need === null ? `<span class="muted">Add an ungraded assessment (e.g. Final, 40%) to calculate this.</span>`
             : need <= 0 ? `🎉 You've already locked in a <b>${letterFor(target)}</b>!`
               : need > 100 ? `😬 You'd need <b>${Math.round(need)}%</b> on ${esc(remainingNames)} — not possible for a ${letterFor(target)}. Aim for the next one down?`

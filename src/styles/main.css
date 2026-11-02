@@ -1,5 +1,5 @@
-/* onTop — UBC blue & gold. Themes swap the custom properties below. */
-:root, [data-theme="ubc"] {
+/* onTop — blue & gold. Themes swap the custom properties below. */
+:root, [data-theme="classic"] {
   --bg: #f4f7fb;
   --bg-pattern: rgba(0, 33, 69, .05);
   --surface: #ffffff;
@@ -7,8 +7,8 @@
   --ink: #0b1b2e;
   --ink-soft: #52637a;
   --rule: #d6e0ec;
-  --brand: #002145;       /* UBC Blue */
-  --accent: #0055B7;      /* UBC secondary blue */
+  --brand: #002145;       /* deep navy */
+  --accent: #0055B7;      /* bright blue */
   --accent-ink: #ffffff;
   --accent-soft: #dbe8f8;
   --sky: #00A7E1;
@@ -29,7 +29,7 @@
   --font-display: "Fraunces", Georgia, serif;
   color-scheme: light;
 }
-[data-theme="ubc-dark"] {
+[data-theme="midnight"] {
   --bg: #07121f; --bg-pattern: rgba(151, 212, 233, .05);
   --surface: #0d1c2e; --surface-2: #13263c; --ink: #e6eef8; --ink-soft: #8ea3bd; --rule: #1f3550;
   --brand: #97D4E9; --accent: #40B4E5; --accent-ink: #02101e; --accent-soft: #12314d;
@@ -220,7 +220,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--sky); outli
   font-weight: 600; font-size: .88rem; cursor: pointer; min-height: 38px;
 }
 .chip.active { background: var(--brand); color: var(--surface); border-color: var(--brand); }
-[data-theme="ubc-dark"] .chip.active, [data-theme="nightsky"] .chip.active { color: #02101e; }
+[data-theme="midnight"] .chip.active, [data-theme="nightsky"] .chip.active { color: #02101e; }
 .seg { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin-bottom: 18px; }
 .seg::-webkit-scrollbar { display: none; }
 
@@ -260,7 +260,7 @@ dialog::backdrop { background: rgba(0, 20, 45, .55); backdrop-filter: blur(3px);
   background: var(--brand); color: var(--surface); padding: 12px 18px; border-radius: 14px; font-weight: 600;
   box-shadow: var(--shadow); animation: toastIn .3s ease; pointer-events: auto; max-width: 90vw;
 }
-[data-theme="ubc-dark"] .toast, [data-theme="nightsky"] .toast { color: #02101e; }
+[data-theme="midnight"] .toast, [data-theme="nightsky"] .toast { color: #02101e; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } }
 
 /* ---------- Today ---------- */
@@ -452,7 +452,7 @@ dialog::backdrop { background: rgba(0, 20, 45, .55); backdrop-filter: blur(3px);
   display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 4px; padding: 14px;
   border-radius: 14px; background: linear-gradient(#d9f0ff, #eaf7e6 60%, #c9e5b1); min-height: 90px; align-content: end;
 }
-[data-theme="ubc-dark"] .garden, [data-theme="nightsky"] .garden { background: linear-gradient(#0b1f38, #12301d 60%, #1c3d1f); }
+[data-theme="midnight"] .garden, [data-theme="nightsky"] .garden { background: linear-gradient(#0b1f38, #12301d 60%, #1c3d1f); }
 .garden span { font-size: 1.6rem; text-align: center; animation: grow .5s ease backwards; }
 @keyframes grow { from { transform: scale(0); } }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }

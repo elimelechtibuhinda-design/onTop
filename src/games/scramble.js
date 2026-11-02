@@ -10,7 +10,7 @@ const WORDS = [
   ["thesis", "The main claim of an essay"], ["momentum", "Mass times velocity"], ["ecosystem", "A community and its environment"],
   ["derivative", "Instantaneous rate of change"], ["citation", "Credit to a source"], ["polymorphism", "Many forms, one interface"],
   ["correlation", "How two variables move together"], ["osmosis", "Water moving across a membrane"], ["paradigm", "A model or pattern of thinking"],
-  ["thunderbird", "UBC's mascot 💙💛"], ["empirical", "Based on observation"], ["syllabus", "The course outline you should read"],
+  ["mnemonic", "A memory trick, like an acronym"], ["empirical", "Based on observation"], ["syllabus", "The course outline you should read"],
   ["iteration", "One pass of a repeated process"], ["abstraction", "Hiding detail to manage complexity"], ["confidence", "Interval or feeling — both help on exams"],
 ];
 

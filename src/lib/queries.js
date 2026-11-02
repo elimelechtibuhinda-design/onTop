@@ -2,7 +2,7 @@
 import { S } from "./store.js";
 import { todayKey, addDays, weekStartKey, daysUntil, dateKey, parseKey } from "./utils.js";
 
-export const UBC = {
+export const BRAND = {
   blue: "#002145", blue2: "#0055B7", sky: "#00A7E1", sky2: "#40B4E5",
   sky3: "#6EC4E8", sky4: "#97D4E9", gold: "#F2A900",
 };
@@ -10,7 +10,7 @@ export const COURSE_COLORS = ["#0055B7", "#00A7E1", "#F2A900", "#2E8B57", "#C241
 
 export const courseById = (id) => S().courses.find((c) => c.id === id);
 export const courseName = (id) => courseById(id)?.name || "General";
-export const courseColor = (id) => courseById(id)?.color || UBC.blue2;
+export const courseColor = (id) => courseById(id)?.color || BRAND.blue2;
 export const courseEmoji = (id) => courseById(id)?.emoji || "📘";
 export const taskById = (id) => S().tasks.find((t) => t.id === id);
 export const eventById = (id) => S().events.find((e) => e.id === id);

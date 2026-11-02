@@ -99,8 +99,8 @@ const LINES = {
     coach: ["{n} review{s} due. Spaced repetition only works if you show up."],
   },
   poke: {
-    friend: ["Hi {name}! You're doing great 💙", "Hoot hoot! Need a study buddy? I'm here.", "Small steps every day beat cramming. Proud of you!", "Go Birds! 💙💛"],
-    coach: ["What are we crushing today, {name}?", "Discipline > motivation. Start the timer.", "Champions do the boring reps.", "Go Birds! Now study."],
+    friend: ["Hi {name}! You're doing great 💙", "Hoot hoot! Need a study buddy? I'm here.", "Small steps every day beat cramming. Proud of you!", "You've got this! 💙💛"],
+    coach: ["What are we crushing today, {name}?", "Discipline > motivation. Start the timer.", "Champions do the boring reps.", "No excuses. Now study."],
   },
 };
 

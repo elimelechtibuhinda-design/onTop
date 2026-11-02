@@ -3,7 +3,7 @@
 A study tracker for students: plan with SMART goals, focus with a timer, take real breaks.
 No sign-in. Everything is stored in the browser on your own device.
 
-Made with 💙💛 for UBC students.
+Made with 💙💛 for students everywhere.
 
 ## What's inside
 
@@ -11,7 +11,7 @@ Made with 💙💛 for UBC students.
 - **Focus timer**: Pomodoro, Deep work, Custom and Stopwatch modes. Also a parking lot, a tab-switch check, an end-of-session check-in, and a timer that survives a refresh.
 - **Toppy the owl**: study and break nudges, 20-20-20 eye reminders, a late-night guard, celebrations, 3 personalities, unlockable outfits, and browser notifications.
 - **Sound**: rain, café, brown noise, fireplace, ocean and library-hum mixer; generated lo-fi tracks; your own Spotify or YouTube playlist; sound cues; music fades out on breaks. Every sound is synthesized in the browser.
-- **Planning**: SMART goal builder with live S/M/A/R/T checks against your real history, goal reviews, weekly drag-and-drop board, tasks with carry-over, term calendar, exam prep planner, spaced review (1/3/7/14 days), grade tracker on the UBC scale with a "what do I need on the final" calculator.
+- **Planning**: SMART goal builder with live S/M/A/R/T checks against your real history, goal reviews, weekly drag-and-drop board, tasks with carry-over, term calendar, exam prep planner, spaced review (1/3/7/14 days), grade tracker with a percentage → letter scale with a "what do I need on the final" calculator.
 - **Break-only games**: breathing bubble, memory match, 2048, reaction tap, doodle pad with gallery, word scramble, stretch cards, flashcards.
 - **Motivation**: XP and levels, ranks (Freshman → Legend), badges, unlockable themes, outfits and sounds, a study garden.
 - **Stats**: week chart, course split, year heatmap, best focus time, course balance warning, a shareable weekly recap image, session log.

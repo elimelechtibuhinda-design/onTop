@@ -42,7 +42,7 @@ export const TIPS = [
   ["🪑", "Same place, same time builds a study habit faster than willpower."],
   ["🌲", "Look at something far away every 20 minutes. Your eyes will thank you."],
   ["💙", "Progress, not perfection. One focused session today is a win."],
-  ["🐦", "Go Birds! Consistency is the real cheat code."],
+  ["🐦", "Early bird or night owl — consistency is the real cheat code."],
 ];
 
 function greeting() {

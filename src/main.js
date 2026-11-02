@@ -40,7 +40,7 @@ let pendingRender = false;
 function applyPrefs() {
   const p = S().profile;
   const html = document.documentElement;
-  html.dataset.theme = p.theme || "ubc";
+  html.dataset.theme = p.theme || "classic";
   html.dataset.font = p.font || "default";
   html.dataset.motion = p.reducedMotion ? "reduced" : "full";
   html.dataset.contrast = p.highContrast ? "high" : "normal";

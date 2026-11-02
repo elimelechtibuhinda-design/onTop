@@ -217,7 +217,7 @@ function drawRecap(d) {
   }
   g.fillStyle = "#F2A900"; g.font = font(700, 30);
   g.fillText(`${levelInfo().rank.emoji} ${levelInfo().rank.name} · Lvl ${levelInfo().level}`, 80, H - 70);
-  g.fillStyle = "#c9d8ea"; g.textAlign = "right"; g.fillText("Go Birds 💙💛", W - 80, H - 70);
+  g.fillStyle = "#c9d8ea"; g.textAlign = "right"; g.fillText("Keep it up 💙💛", W - 80, H - 70);
   return cv;
 }
 function wrapText(g, text, x, y, maxW, lh) {

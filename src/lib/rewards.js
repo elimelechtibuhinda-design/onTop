@@ -15,16 +15,16 @@ export const BADGES = [
 
 // Level needed to unlock each cosmetic.
 export const UNLOCKS = {
-  theme: { ubc: 1, "ubc-dark": 1, library: 3, nightsky: 5, matcha: 7, sunset: 10 },
+  theme: { classic: 1, midnight: 1, library: 3, nightsky: 5, matcha: 7, sunset: 10 },
   outfit: { none: 1, cap: 1, headphones: 2, scarf: 4, sunglasses: 6, crown: 12 },
   sound: { rain: 1, cafe: 1, brown: 1, library: 1, fire: 3, ocean: 5 },
   track: { rainy: 1, library: 1, sunset: 4 },
 };
 export const UNLOCK_NAMES = {
-  ubc: "UBC Light", "ubc-dark": "UBC Night", library: "Library", nightsky: "Night Sky", matcha: "Matcha", sunset: "Sunset",
-  none: "No outfit", cap: "Grad cap", headphones: "Headphones", scarf: "Thunderbird scarf", sunglasses: "Shades", crown: "Crown",
+  classic: "Blue & Gold", midnight: "Midnight", library: "Library", nightsky: "Night Sky", matcha: "Matcha", sunset: "Sunset",
+  none: "No outfit", cap: "Grad cap", headphones: "Headphones", scarf: "Gold scarf", sunglasses: "Shades", crown: "Crown",
   rain: "Rain", cafe: "Café", brown: "Brown noise", fire: "Fireplace", ocean: "Ocean",
-  rainy: "Rainy Window", sunset_track: "Wreck Beach Sunset",
+  rainy: "Rainy Window", sunset_track: "Beach Sunset",
 };
 const KIND_NAMES = { theme: "theme", outfit: "Toppy outfit", sound: "sound", track: "lo-fi track" };
 

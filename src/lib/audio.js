@@ -18,8 +18,8 @@ export const AMBIENT = [
 ];
 export const TRACKS = [
   { id: "rainy", name: "Rainy Window", bpm: 72, chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },
-  { id: "library", name: "Late at Koerner", bpm: 78, chords: [[57, 60, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59]] },
-  { id: "sunset", name: "Wreck Beach Sunset", bpm: 70, chords: [[51, 55, 58, 62], [48, 51, 55, 58], [53, 56, 60, 63], [46, 50, 53, 56]] },
+  { id: "library", name: "Late-Night Library", bpm: 78, chords: [[57, 60, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59]] },
+  { id: "sunset", name: "Beach Sunset", bpm: 70, chords: [[51, 55, 58, 62], [48, 51, 55, 58], [53, 56, 60, 63], [46, 50, 53, 56]] },
 ];
 
 function ensure() {

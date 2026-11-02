@@ -17,7 +17,7 @@ export function defaultState() {
       studyHour: 19,                // usual study time, for nudges
       personality: "friend",        // friend | coach | quiet
       outfit: "cap",
-      theme: "ubc",
+      theme: "classic",
       font: "default",              // default | easy
       reducedMotion: false,
       highContrast: false,
@@ -91,6 +91,8 @@ function migrate(saved) {
   for (const k of Object.keys(base)) {
     if (Array.isArray(base[k]) && !Array.isArray(out[k])) out[k] = base[k];
   }
+  // Theme ids were renamed; keep people on the theme they picked.
+  out.profile.theme = { ubc: "classic", "ubc-dark": "midnight" }[out.profile.theme] || out.profile.theme;
   out.version = SCHEMA_VERSION;
   return out;
 }
