@@ -26,6 +26,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         navigateFallback: "index.html",
+        importScripts: ["sw-ping.js"],
         // Piano tracks are large, so they're cached the first time they play instead of up front.
         runtimeCaching: [{
           urlPattern: /\/music\/.*\.mp3$/,

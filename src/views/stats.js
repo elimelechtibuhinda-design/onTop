@@ -36,6 +36,7 @@ export function renderStats(el) {
     <div class="card section"><div class="card-head"><h3>Your study year</h3>
       <div class="heat-legend">Less ${HEAT.map((c) => `<i style="background:${c}"></i>`).join("")} More</div></div>
       <div class="heatmap">${heatmap()}</div></div>
+    <div class="card section">${focusQuality()}</div>
     <div class="grid-2 section">
       <div class="card">${bestFocus()}</div>
       <div class="card"><div class="card-head"><h3>📬 Weekly recap</h3></div>
@@ -132,6 +133,57 @@ function bestFocus() {
     <p class="tiny muted" style="margin-top:6px">Try scheduling your hardest work in that window.</p>`;
 }
 
+const REASON_LABEL = { phone: "📱 Phone", chat: "💬 Chat", social: "📲 Social media", noise: "🔊 Noise", tired: "😴 Tired", other: "🤔 Other" };
+const REASON_TIP = {
+  phone: "Put your phone in another room (or a drawer) during focus blocks — out of sight really is out of mind.",
+  chat: "Mute chats for the length of one Pomodoro. People can wait 25 minutes.",
+  social: "Log out of social apps on your study device, or use a site blocker during focus time.",
+  noise: "Try the rain or brown-noise sounds, or noise-cancelling headphones.",
+  tired: "Tiredness beats willpower. Try a short walk, water, or studying earlier in the day.",
+  other: "Write the distraction in the parking lot and deal with it after the session.",
+};
+
+// Distraction measured three ways: what you log (taps), random "still on task?" check-ins, and your own rating.
+function focusQuality() {
+  const from = addDays(todayKey(), -13);
+  const recent = S().sessions.filter((s) => s.dateKey >= from);
+  const tracked = recent.filter((s) => s.distractions !== undefined);
+  if (!tracked.length) {
+    return `<div class="card-head"><h3>🎯 Focus quality</h3></div><p class="small muted">After your next session you'll see how often you get distracted, what pulls you away, and how often you're on task when onTop checks in.</p>`;
+  }
+  const hours = tracked.reduce((a, s) => a + s.durationSec, 0) / 3600;
+  const dCount = tracked.reduce((a, s) => a + (s.distractions || 0), 0);
+  const perHour = hours ? dCount / hours : 0;
+  const pings = tracked.reduce((a, s) => ({ yes: a.yes + (s.pings?.yes || 0), no: a.no + (s.pings?.no || 0) }), { yes: 0, no: 0 });
+  const answered = pings.yes + pings.no;
+  const onTask = answered ? Math.round((pings.yes / answered) * 100) : null;
+  const rated = recent.filter((s) => s.focus > 0);
+  const avgRating = rated.length ? rated.reduce((a, s) => a + s.focus, 0) / rated.length : null;
+  const reasons = {};
+  tracked.forEach((s) => Object.entries(s.reasons || {}).forEach(([k, v]) => { reasons[k] = (reasons[k] || 0) + v; }));
+  const top = Object.entries(reasons).sort((a, b) => b[1] - a[1]);
+  const wk = weekStartKey();
+  const rate = (list) => { const h = list.reduce((a, s) => a + s.durationSec, 0) / 3600; return h ? list.reduce((a, s) => a + (s.distractions || 0), 0) / h : null; };
+  const thisW = rate(tracked.filter((s) => s.dateKey >= wk));
+  const lastW = rate(tracked.filter((s) => s.dateKey < wk && s.dateKey >= addDays(wk, -7)));
+  const trend = thisW !== null && lastW !== null && lastW > 0
+    ? (thisW <= lastW ? `▼ ${Math.round((1 - thisW / lastW) * 100)}% fewer than last week 🎉` : `▲ ${Math.round((thisW / lastW - 1) * 100)}% more than last week`) : "";
+  const maxR = top[0]?.[1] || 1;
+  return `<div class="card-head"><h3>🎯 Focus quality</h3><span class="small muted">last 2 weeks</span></div>
+    <div class="grid-3">
+      <div><span class="label">On task when checked</span><div class="big-num">${onTask === null ? "—" : onTask + "%"}</div>
+        <p class="tiny muted">${answered ? `${pings.yes} of ${answered} “still on task?” check-ins` : "Turn on focus pings to measure this"}</p></div>
+      <div><span class="label">Distractions / hour</span><div class="big-num">${perHour.toFixed(1)}</div>
+        <p class="tiny muted">${dCount} logged in ${Math.round(hours * 10) / 10}h ${trend ? "· " + trend : ""}</p></div>
+      <div><span class="label">Your focus rating</span><div class="big-num">${avgRating === null ? "—" : ["", "😩", "😐", "🙂", "🔥"][Math.round(avgRating)] + " " + avgRating.toFixed(1)}</div>
+        <p class="tiny muted">out of 4, from your check-ins</p></div>
+    </div>
+    ${top.length ? `<div style="margin-top:14px"><span class="label">What pulls you away</span>
+      ${top.map(([k, v]) => `<div class="hbar"><span class="name small">${REASON_LABEL[k] || k}</span><div class="bar"><i style="width:${(v / maxR) * 100}%;background:var(--warn)"></i></div><span class="val small">${v}×</span></div>`).join("")}
+      <p class="small" style="margin-top:8px">💡 ${esc(REASON_TIP[top[0][0]] || REASON_TIP.other)}</p></div>` : ""}
+    <p class="tiny muted" style="margin-top:10px">Browsers can't see your other tabs or apps (that's a privacy protection), so onTop measures focus from what you log, random check-ins, and your own rating — no spying.</p>`;
+}
+
 function balanceWarning() {
   const from = addDays(todayKey(), -13);
   const totals = {};
@@ -160,7 +212,7 @@ function sessionLog() {
       html += `<div class="label" style="margin:14px 0 4px">${fmtDate(s.dateKey, { weekday: "long", month: "short", day: "numeric" })} · ${fmtHM(secOn(s.dateKey))}</div>`;
     }
     html += `<div class="list-row"><span class="dot" style="background:${courseColor(s.courseId)}"></span>
-      <div class="grow"><b class="small">${esc(courseName(s.courseId))}</b> <span class="tiny muted">${fmtTime(s.start)} · ${s.mode || ""}${s.focus ? " · " + ["", "😩", "😐", "🙂", "🔥"][s.focus] : ""}${s.distractedSec ? ` · ${fmtHM(s.distractedSec)} distracted` : ""}</span>
+      <div class="grow"><b class="small">${esc(courseName(s.courseId))}</b> <span class="tiny muted">${fmtTime(s.start)} · ${s.mode || ""}${s.focus ? " · " + ["", "😩", "😐", "🙂", "🔥"][s.focus] : ""}${s.distractions ? ` · 😵 ${s.distractions}` : ""}${s.distractedSec ? ` · ${fmtHM(s.distractedSec)} away` : ""}</span>
         ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}</div>
       <span class="mono small">${fmtHM(s.durationSec)}</span>
       <button class="icon-btn" data-delsess="${s.id}" aria-label="Delete session">✕</button></div>`;
