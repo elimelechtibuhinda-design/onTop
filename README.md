@@ -3,7 +3,7 @@
 A study tracker for students: plan with SMART goals, focus with a timer, take real breaks.
 No sign-in. Everything is stored in the browser on your own device.
 
-Made with 💙💛 for UBC students. Not an official UBC app.
+Made with 💙💛 for UBC students.
 
 ## What's inside
 

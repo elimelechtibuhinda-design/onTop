@@ -125,7 +125,7 @@ export function renderMe(el) {
         <button class="btn danger" data-wipe>Delete everything</button>
       </div>
     </div>
-    <p class="footer-note">onTop · made with 💙💛 for students · not an official UBC app</p>`;
+    <p class="footer-note">onTop · made with 💙💛 for students</p>`;
 
   // Profile fields
   el.querySelectorAll("[data-p]").forEach((i) => i.addEventListener("change", () => update((s) => {

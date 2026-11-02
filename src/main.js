@@ -53,7 +53,7 @@ function shell() {
         <div class="brand"><img src="./icon.svg" alt=""><b>on<span>Top</span></b></div>
         ${Object.entries(VIEWS).map(([id, v]) => `<button class="nav-btn" data-view="${id}"><span class="ico" aria-hidden="true">${v.icon}</span>${v.label}</button>`).join("")}
         <button class="nav-btn" data-focus style="margin-top:14px;background:var(--gold);color:#1a1300"><span class="ico">▶</span>Start focus</button>
-        <div class="rail-foot">Your data stays on this device 🔒<br>Not an official UBC app</div>
+        <div class="rail-foot">Your data stays on this device 🔒</div>
       </nav>
       <main class="main" id="main" tabindex="-1"></main>
       <nav class="tabbar" aria-label="Main">
