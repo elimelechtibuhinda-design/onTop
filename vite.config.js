@@ -25,7 +25,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-        navigateFallback: "index.html"
+        navigateFallback: "index.html",
+        // Piano tracks are large, so they're cached the first time they play instead of up front.
+        runtimeCaching: [{
+          urlPattern: /\/music\/.*\.mp3$/,
+          handler: "CacheFirst",
+          options: {
+            cacheName: "ontop-piano",
+            rangeRequests: true,
+            cacheableResponse: { statuses: [200] },
+            expiration: { maxEntries: 20 }
+          }
+        }]
       }
     })
   ]

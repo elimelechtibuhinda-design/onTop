@@ -7,7 +7,7 @@ import { courseById, courseName, taskById } from "../lib/queries.js";
 import { bell, chime, duck, tickSound, unlockAudio } from "../lib/audio.js";
 import { rewardSession, lastSessionKey } from "../lib/rewards.js";
 import { openDialog, confirmDialog, toast, courseOptions } from "../components/ui.js";
-import { renderSounds, restoreMix } from "../components/sounds.js";
+import { renderSounds } from "../components/sounds.js";
 import { GAMES } from "../games/index.js";
 
 export const MODES = {
@@ -108,7 +108,6 @@ function begin(draft) {
   update((st) => { st.profile.lastCourseId = T.courseId; st.profile.timerMode = T.mode; });
   persist();
   duck(false);
-  restoreMix();
   minimized = false;
   openOverlay();
   startTicking();
@@ -422,7 +421,7 @@ async function finishPressed() {
 }
 
 function renderPanel(box) {
-  if (panel === "sounds") return renderSounds(box, { dark: true });
+  if (panel === "sounds") return renderSounds(box);
   const items = S().parking.filter((p) => !p.done);
   box.innerHTML = `
     <h3>📝 Parking lot</h3>

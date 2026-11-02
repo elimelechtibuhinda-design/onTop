@@ -21,6 +21,7 @@ import { renderStats, setStatsOpts } from "./views/stats.js";
 import { renderMe } from "./views/me.js";
 import { initFocus, openFocus } from "./views/focus.js";
 import { mountToppy, redraw as redrawToppy } from "./components/toppy.js";
+import { mountDock } from "./components/dock.js";
 import { syncGoals } from "./components/smart.js";
 import { checkBadges } from "./lib/rewards.js";
 
@@ -120,6 +121,7 @@ async function boot() {
   requestPersistence();
   registerSW({ immediate: true });
   mountToppy();
+  mountDock();
   initFocus();
 
   const startApp = () => {

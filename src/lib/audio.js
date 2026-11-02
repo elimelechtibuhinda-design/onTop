@@ -1,12 +1,11 @@
-// All sound in onTop is synthesized with the Web Audio API: ambient noise beds,
-// procedurally generated lo-fi, and cue sounds. No audio files, works offline, royalty-free.
+// Ambient beds and cue sounds, synthesized with the Web Audio API (no files, works offline).
+// Piano music lives in player.js.
+import { duckPiano } from "./player.js";
+import { emit } from "./bus.js";
 
 let ctx = null;
-let master, ambientBus, musicBus;
+let master, ambientBus;
 const playing = {};          // ambient id -> { gain, stop() }
-let music = null;            // { id, stop() }
-let musicVolume = 0.5;
-let ducked = false;
 
 export const AMBIENT = [
   { id: "rain", emoji: "🌧️", name: "Rain" },
@@ -16,11 +15,6 @@ export const AMBIENT = [
   { id: "ocean", emoji: "🌊", name: "Ocean" },
   { id: "library", emoji: "📚", name: "Library hum" },
 ];
-export const TRACKS = [
-  { id: "rainy", name: "Rainy Window", bpm: 72, chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },
-  { id: "library", name: "Late-Night Library", bpm: 78, chords: [[57, 60, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59]] },
-  { id: "sunset", name: "Beach Sunset", bpm: 70, chords: [[51, 55, 58, 62], [48, 51, 55, 58], [53, 56, 60, 63], [46, 50, 53, 56]] },
-];
 
 function ensure() {
   if (ctx) { if (ctx.state === "suspended") ctx.resume(); return ctx; }
@@ -29,7 +23,6 @@ function ensure() {
   ctx = new AC();
   master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
   ambientBus = ctx.createGain(); ambientBus.connect(master);
-  musicBus = ctx.createGain(); musicBus.gain.value = musicVolume; musicBus.connect(master);
   return ctx;
 }
 export function unlockAudio() { ensure(); }
@@ -175,108 +168,25 @@ export function setAmbient(id, volume) {
   if (!ensure()) return;
   const cur = playing[id];
   if (volume <= 0) {
-    if (cur) { cur.stop(); cur.gain.disconnect(); delete playing[id]; }
+    if (cur) { cur.stop(); cur.gain.disconnect(); delete playing[id]; emit("music"); }
     return;
   }
-  if (cur) { cur.gain.gain.setTargetAtTime(volume, ctx.currentTime, 0.1); return; }
+  if (cur) { cur.vol = volume; cur.gain.gain.setTargetAtTime(volume, ctx.currentTime, 0.1); emit("music"); return; }
   const gain = ctx.createGain();
   gain.gain.value = 0;
   gain.connect(ambientBus);
   gain.gain.setTargetAtTime(volume, ctx.currentTime, 0.3);
-  playing[id] = { gain, stop: BUILDERS[id](gain) };
+  playing[id] = { gain, vol: volume, stop: BUILDERS[id](gain) };
+  emit("music");
 }
+export const ambientLevel = (id) => playing[id]?.vol || 0;
 export const ambientPlaying = () => Object.keys(playing);
 export function stopAllAmbient() { Object.keys(playing).forEach((id) => setAmbient(id, 0)); }
 
-/* ---------- procedural lo-fi ---------- */
-const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
-
-function startTrack(track) {
-  const out = ctx.createGain();
-  out.gain.value = 0;
-  out.connect(musicBus);
-  out.gain.setTargetAtTime(0.6, ctx.currentTime, 0.5);
-  const lp = filter("lowpass", 2200); lp.connect(out);    // warm "tape" tone
-  const spb = 60 / track.bpm;
-  let step = 0;                                           // 8th-note steps
-  let next = ctx.currentTime + 0.1;
-
-  const keys = (notes, t, dur) => notes.forEach((n, i) => {
-    ["sine", "triangle"].forEach((type, k) => {
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type = type; o.frequency.value = midi(n); o.detune.value = (Math.random() - 0.5) * 12;
-      const peak = (k ? 0.025 : 0.04);
-      g.gain.setValueAtTime(0.0001, t + i * 0.03);
-      g.gain.exponentialRampToValueAtTime(peak, t + i * 0.03 + 0.04);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g).connect(lp); o.start(t); o.stop(t + dur + 0.1);
-    });
-  });
-  const bass = (n, t, dur) => {
-    const o = ctx.createOscillator(); const g = ctx.createGain();
-    o.type = "sine"; o.frequency.value = midi(n - 12);
-    g.gain.setValueAtTime(0.13, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.05);
-  };
-  const kick = (t) => {
-    const o = ctx.createOscillator(); const g = ctx.createGain();
-    o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.25);
-    g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-    o.connect(g).connect(out); o.start(t); o.stop(t + 0.4);
-  };
-  const hit = (t, freq, type, dur, gain) => {
-    const src = ctx.createBufferSource(); src.buffer = noiseBuffer("white");
-    const f = filter(type, freq, 1); const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(f).connect(g).connect(out); src.start(t, Math.random() * 3, dur + 0.05);
-  };
-
-  const schedule = () => {
-    while (next < ctx.currentTime + 0.4) {
-      const bar = Math.floor(step / 8) % track.chords.length;
-      const pos = step % 8;
-      const swing = pos % 2 ? spb * 0.12 : 0;
-      const t = next + swing;
-      const chord = track.chords[bar];
-      if (pos === 0) keys(chord, t, spb * 4);
-      if (pos === 0 || pos === 4) bass(chord[0], t, spb * 1.6);
-      if (pos === 3) bass(chord[0], t, spb * 0.5);
-      if (pos === 0 || pos === 5) kick(t);
-      if (pos === 2 || pos === 6) hit(t, 1800, "bandpass", 0.16, 0.18);
-      hit(t, 8000, "highpass", 0.04, pos % 2 ? 0.03 : 0.05);
-      if (Math.random() < 0.25) hit(t + Math.random() * spb, 5000, "highpass", 0.01, 0.06); // vinyl crackle
-      next += spb / 2;
-      step++;
-    }
-  };
-  const h = setInterval(schedule, 100);
-  schedule();
-  return () => {
-    clearInterval(h);
-    out.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
-    setTimeout(() => out.disconnect(), 1500);
-  };
-}
-
-export function playMusic(id) {
-  if (!ensure()) return;
-  stopMusic();
-  const track = TRACKS.find((t) => t.id === id);
-  if (!track) return;
-  music = { id, stop: startTrack(track) };
-}
-export function stopMusic() { if (music) { music.stop(); music = null; } }
-export const musicPlaying = () => music?.id || null;
-export function setMusicVolume(v) {
-  musicVolume = v;
-  if (ctx) musicBus.gain.setTargetAtTime(ducked ? 0 : v, ctx.currentTime, 0.2);
-}
-
-// Auto-ducking: fade music out on break, back in on focus.
+// Auto-ducking: piano and ambient get quieter on breaks, back to full on focus.
 export function duck(on) {
-  ducked = on;
+  duckPiano(on);
   if (!ctx) return;
-  musicBus.gain.setTargetAtTime(on ? 0 : musicVolume, ctx.currentTime, 0.6);
   ambientBus.gain.setTargetAtTime(on ? 0.3 : 1, ctx.currentTime, 0.6);
 }
 

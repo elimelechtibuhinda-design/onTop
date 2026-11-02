@@ -18,15 +18,13 @@ export const UNLOCKS = {
   theme: { classic: 1, midnight: 1, library: 3, nightsky: 5, matcha: 7, sunset: 10 },
   outfit: { none: 1, cap: 1, headphones: 2, scarf: 4, sunglasses: 6, crown: 12 },
   sound: { rain: 1, cafe: 1, brown: 1, library: 1, fire: 3, ocean: 5 },
-  track: { rainy: 1, library: 1, sunset: 4 },
 };
 export const UNLOCK_NAMES = {
   classic: "Blue & Gold", midnight: "Midnight", library: "Library", nightsky: "Night Sky", matcha: "Matcha", sunset: "Sunset",
   none: "No outfit", cap: "Grad cap", headphones: "Headphones", scarf: "Gold scarf", sunglasses: "Shades", crown: "Crown",
   rain: "Rain", cafe: "Café", brown: "Brown noise", fire: "Fireplace", ocean: "Ocean",
-  rainy: "Rainy Window", sunset_track: "Beach Sunset",
 };
-const KIND_NAMES = { theme: "theme", outfit: "Toppy outfit", sound: "sound", track: "lo-fi track" };
+const KIND_NAMES = { theme: "theme", outfit: "Toppy outfit", sound: "sound" };
 
 export function unlockLevel(kind, id) { return UNLOCKS[kind]?.[id] ?? 1; }
 export function isUnlocked(kind, id) { return levelInfo().level >= unlockLevel(kind, id); }
@@ -94,7 +92,7 @@ function announceUnlocks(level) {
   for (const [kind, map] of Object.entries(UNLOCKS)) {
     for (const [id, lvl] of Object.entries(map)) {
       if (lvl !== level) continue;
-      const label = kind === "track" && id === "sunset" ? UNLOCK_NAMES.sunset_track : UNLOCK_NAMES[id] || id;
+      const label = UNLOCK_NAMES[id] || id;
       names.push(`${label} ${KIND_NAMES[kind]}`);
     }
   }
