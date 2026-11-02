@@ -37,7 +37,7 @@ function draw() {
   const ambText = amb.map((id) => AMBIENT.find((a) => a.id === id)?.emoji).join("");
   el.querySelector(".dock-bar").innerHTML = `
     ${pianoActive() ? `
-      <span class="dock-title"><b>🎹 ${esc(s.track.title)}</b><span>${esc(s.track.composer)}</span></span>
+      <span class="dock-title"><b>${s.playlist.emoji} ${esc(s.track.title)}</b><span>${esc(s.track.composer)}</span></span>
       <button class="icon-btn" data-prev aria-label="Previous track">⏮</button>
       <button class="icon-btn dock-pp" data-pp aria-label="${s.playing ? "Pause" : "Play"}">${s.playing ? "⏸" : "▶"}</button>
       <button class="icon-btn" data-next aria-label="Next track">⏭</button>`

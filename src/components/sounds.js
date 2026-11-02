@@ -30,16 +30,17 @@ export function renderSounds(container) {
   container.innerHTML = `
     <div class="stack">
       <div class="row between wrap">
-        <div><h3>🎹 Focus piano</h3><p class="small muted">Real piano recordings — Satie, Chopin, Schumann. Calm, no lyrics.</p></div>
+        <div><h3>🎶 Focus music</h3><p class="small muted" data-blurb>${esc(ps.playlist.blurb)} Real recordings, no lyrics.</p></div>
         <button class="btn sm danger" data-stopall>⏹ Stop all sound</button>
       </div>
+      <div class="chips" data-lists>${Object.entries(piano.PLAYLISTS).map(([id, pl]) => `<button class="chip ${ps.list === id ? "active" : ""}" data-list="${id}">${pl.emoji} ${esc(pl.name)}</button>`).join("")}</div>
       <div class="row wrap">
         <button class="btn primary" data-pp>${ps.playing ? "⏸ Pause" : "▶ Play"}</button>
         <button class="btn" data-next aria-label="Next track">⏭ Next</button>
         <label class="check small"><input type="checkbox" data-shuffle ${ps.shuffle ? "checked" : ""}> Shuffle</label>
       </div>
-      <label class="mix-row"><span class="e" aria-hidden="true">🔊</span><span>Piano volume</span>
-        <input type="range" min="0" max="1" step="0.05" value="${ps.volume}" data-pvol aria-label="Piano volume"></label>
+      <label class="mix-row"><span class="e" aria-hidden="true">🔊</span><span>Music volume</span>
+        <input type="range" min="0" max="1" step="0.05" value="${ps.volume}" data-pvol aria-label="Music volume"></label>
       <div class="stack tight" data-tracks></div>
 
       <div><h3>🌧️ Background sounds</h3><p class="small muted">Mix them, e.g. rain + café. Slide to 0 to turn one off.</p></div>
@@ -75,11 +76,14 @@ export function renderSounds(container) {
   const drawTracks = () => {
     if (!tracksBox.isConnected) return off();
     const s = piano.pianoState();
-    tracksBox.innerHTML = piano.PIANO.map((t) => {
+    container.querySelectorAll("[data-list]").forEach((b) => b.classList.toggle("active", b.dataset.list === s.list));
+    const blurb = container.querySelector("[data-blurb]");
+    if (blurb) blurb.textContent = `${s.playlist.blurb} Real recordings, no lyrics.`;
+    tracksBox.innerHTML = s.playlist.tracks.map((t) => {
       const cur = t.id === s.track.id;
       return `<button class="list-row" data-track="${t.id}" style="background:none;border:0;border-bottom:1px solid var(--rule);cursor:pointer;text-align:left;color:inherit;width:100%">
         <span style="width:20px">${cur && s.playing ? "🔊" : cur ? "⏸" : "▶"}</span>
-        <span class="grow"><b class="small" style="${cur ? "color:var(--accent)" : ""}">${esc(t.title)}</b> <span class="tiny muted">· ${esc(t.composer)}</span></span></button>`;
+        <span class="grow"><b class="small" style="${cur ? "color:var(--accent)" : ""}">${esc(t.title)}</b> <span class="tiny muted">· ${esc(t.composer)}${t.credit ? ` · played by ${esc(t.credit)}` : ""}</span></span></button>`;
     }).join("");
     tracksBox.querySelectorAll("[data-track]").forEach((b) => b.addEventListener("click", () => {
       const s2 = piano.pianoState();
@@ -91,6 +95,7 @@ export function renderSounds(container) {
   const off = on("music", drawTracks);
   drawTracks();
 
+  container.querySelectorAll("[data-list]").forEach((b) => b.addEventListener("click", () => piano.setPlaylist(b.dataset.list)));
   container.querySelector("[data-pp]").addEventListener("click", () => piano.toggle());
   container.querySelector("[data-next]").addEventListener("click", () => piano.next());
   container.querySelector("[data-shuffle]").addEventListener("change", (e) => piano.setShuffle(e.target.checked));
