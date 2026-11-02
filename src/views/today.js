@@ -244,7 +244,7 @@ function planMyDay() {
     </div>
     <div class="row wrap">
       <label class="field grow"><span>Start at</span><input type="time" data-start value="${startDefault}"></label>
-      <label class="field grow"><span>Break between (min)</span><input type="number" data-brk value="5" min="0" max="30"></label>
+      <label class="field grow"><span>Break between (min)</span><input type="number" data-brk value="5" min="0"></label>
       <label class="field grow"><span>Default task length</span><input type="number" data-def value="45" min="10" step="5"></label>
     </div>
     <div class="dlg-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-build>Build my plan</button></div>`, (dlg, close) => {

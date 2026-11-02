@@ -70,7 +70,7 @@ function achievable(g) {
   const round1 = (n) => Math.round(n * 10) / 10;
   if (g.measure === "hours" || g.measure === "avgDaily") {
     const perDay = g.measure === "hours" ? target / days : target;
-    if (perDay > 10) return { ok: false, msg: `${round1(perDay)}h a day isn't sustainable. Your brain needs rest. Try lower.` };
+    if (perDay > 10) return { ok: false, warn: true, msg: `${round1(perDay)}h a day is intense — make sure you plan sleep and breaks. You can still save it.` };
     if (avgH !== null) {
       // Past goal reviews tune how much stretch is "realistic" for this student.
       const hr = hitRate();

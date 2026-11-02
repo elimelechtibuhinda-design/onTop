@@ -6,7 +6,7 @@ import { toppySvg } from "../components/toppy.js";
 import { EMOJIS } from "./plan.js";
 
 export function renderSetup(root, onDone) {
-  const d = { name: "", courses: [], exams: [], mode: "pomodoro", dailyGoalMin: 120 };
+  const d = { name: "", courses: [], exams: [], mode: "pomodoro", dailyGoalMin: 120, focusMin: 40, breakMin: 8 };
   let step = 0;
   let emoji = EMOJIS[0];
 
@@ -49,12 +49,19 @@ export function renderSetup(root, onDone) {
   const style = () => `
     <h2>How do you like to study?</h2>
     <div class="stack tight">
-      ${[["pomodoro", "🍅 Pomodoro", "25 min focus, 5 min break"], ["deep", "🧘 Long focus", "50 min focus, 10 min break"], ["stopwatch", "⏱️ Free timer", "Count up, break whenever"]].map(([v, l, s]) => `
+      ${[["pomodoro", "🍅 Pomodoro", "25 min focus, 5 min break"], ["deep", "🧘 Long focus", "50 min focus, 10 min break"], ["custom", "🎛️ My own", "Pick your own focus & break lengths"], ["stopwatch", "⏱️ Free timer", "Count up, break whenever"]].map(([v, l, s]) => `
         <button class="card flat row" data-mode="${v}" style="cursor:pointer;text-align:left;${d.mode === v ? "border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)" : ""}">
           <b style="min-width:130px">${l}</b><span class="small muted">${s}</span></button>`).join("")}
     </div>
-    <div class="field"><span>Daily study goal</span>
-      <div class="chips">${[60, 120, 180, 240].map((m) => `<button class="chip ${d.dailyGoalMin === m ? "active" : ""}" data-goal="${m}">${m / 60}h</button>`).join("")}</div></div>
+    ${d.mode === "custom" ? `<div class="row wrap">
+      <label class="field grow"><span>Focus (min)</span><input type="number" data-fm min="1" value="${d.focusMin}"></label>
+      <label class="field grow"><span>Break (min)</span><input type="number" data-bm min="1" value="${d.breakMin}"></label></div>` : ""}
+    <div class="field"><span>How many hours a day do you want to study?</span>
+      <div class="row wrap">
+        <input type="number" data-hours min="0.25" step="0.25" value="${d.dailyGoalMin / 60}" style="width:110px" aria-label="Hours per day"><span class="muted">hours / day</span>
+      </div>
+      <div class="chips">${[1, 2, 3, 4, 5, 6, 8].map((h) => `<button class="chip ${d.dailyGoalMin === h * 60 ? "active" : ""}" data-goal="${h * 60}">${h}h</button>`).join("")}</div>
+      <span class="hint">Any amount works — 30 min or 10 hours. You can change it any time in Me.</span></div>
     <div class="dlg-actions"><button class="btn ghost" data-back>← Back</button><button class="btn primary" data-next>Finish →</button></div>`;
 
   const done = () => `
@@ -87,11 +94,20 @@ export function renderSetup(root, onDone) {
     root.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { d.courses.splice(+b.dataset.rm, 1); draw(); }));
     root.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { d.mode = b.dataset.mode; draw(); }));
     root.querySelectorAll("[data-goal]").forEach((b) => b.addEventListener("click", () => { d.dailyGoalMin = +b.dataset.goal; draw(); }));
+    q("[data-hours]")?.addEventListener("input", (e) => {
+      const h = parseFloat(e.target.value);
+      if (h > 0) d.dailyGoalMin = Math.round(h * 60);
+      root.querySelectorAll("[data-goal]").forEach((b) => b.classList.toggle("active", +b.dataset.goal === d.dailyGoalMin));
+    });
+    q("[data-fm]")?.addEventListener("input", (e) => { d.focusMin = Math.max(1, +e.target.value || 40); });
+    q("[data-bm]")?.addEventListener("input", (e) => { d.breakMin = Math.max(1, +e.target.value || 8); });
     q("[data-finish]")?.addEventListener("click", () => {
       update((st) => {
         st.profile.name = d.name;
         st.profile.timerMode = d.mode;
         st.profile.dailyGoalMin = d.dailyGoalMin;
+        st.profile.customFocusMin = d.focusMin;
+        st.profile.customBreakMin = d.breakMin;
         st.profile.setupDone = true;
         st.profile.createdAt = Date.now();
         st.profile.lastBackup = Date.now();   // don't nag about backups on day one

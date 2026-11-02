@@ -279,7 +279,7 @@ function exam(el, rerender) {
         ${exams.length ? "" : `<button class="btn sm" data-addexam>+ Add an exam date first</button>`}
         <label class="field"><span>Topics <span class="hint">one per line</span></span>
           <textarea data-topics rows="6" placeholder="Ch 1 Sampling\nCh 2 Descriptive stats\nCh 3 Probability\nCh 4 Normal distribution"></textarea></label>
-        <label class="field"><span>Hours you can study per day</span><input type="number" data-hpd value="2" min="0.5" max="10" step="0.5"></label>
+        <label class="field"><span>Hours you can study per day</span><input type="number" data-hpd value="2" min="0.25" step="0.25"></label>
         <div class="row"><button class="btn" data-preview>Preview</button><button class="btn primary" data-create>Create plan</button></div>
         <div data-out></div>
       </div>

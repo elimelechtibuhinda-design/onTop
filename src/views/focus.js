@@ -459,8 +459,8 @@ function renderSetup(draft) {
         ${Object.entries(MODES).map(([id, m]) => `<button class="mode-card ${draft.mode === id ? "active" : ""}" data-mode="${id}"><b>${m.name}</b><span>${id === "custom" ? `${p.customFocusMin} focus · ${p.customBreakMin} break` : m.desc}</span></button>`).join("")}
       </div>
       ${draft.mode === "custom" ? `<div class="panel row wrap">
-        <label class="field grow"><span>Focus (min)</span><input type="number" min="5" max="180" value="${p.customFocusMin}" data-cf></label>
-        <label class="field grow"><span>Break (min)</span><input type="number" min="1" max="60" value="${p.customBreakMin}" data-cb></label></div>` : ""}
+        <label class="field grow"><span>Focus (min)</span><input type="number" min="1" value="${p.customFocusMin}" data-cf></label>
+        <label class="field grow"><span>Break (min)</span><input type="number" min="1" value="${p.customBreakMin}" data-cb></label></div>` : ""}
       <div class="panel stack">
         <label class="field"><span>Course</span><select data-course>${courseOptions(st.courses, draft.courseId)}</select></label>
         <label class="field"><span>Task <span class="muted">(optional)</span></span>
@@ -478,7 +478,7 @@ function renderSetup(draft) {
     renderSetup(draft);
   });
   root.querySelector("[data-working]").addEventListener("input", (e) => { draft.workingOn = e.target.value; });
-  root.querySelector("[data-cf]")?.addEventListener("change", (e) => update((s) => { s.profile.customFocusMin = Math.max(5, +e.target.value || 40); }));
+  root.querySelector("[data-cf]")?.addEventListener("change", (e) => update((s) => { s.profile.customFocusMin = Math.max(1, +e.target.value || 40); }));
   root.querySelector("[data-cb]")?.addEventListener("change", (e) => update((s) => { s.profile.customBreakMin = Math.max(1, +e.target.value || 8); }));
   root.querySelector("[data-go]").addEventListener("click", () => begin(draft));
 }

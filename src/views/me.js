@@ -42,7 +42,7 @@ export function renderMe(el) {
         <h3>Profile</h3>
         <label class="field"><span>Your name</span><input type="text" data-p="name" value="${esc(p.name)}"></label>
         <div class="row wrap">
-          <label class="field grow"><span>Daily study goal (min)</span><input type="number" data-p="dailyGoalMin" min="15" step="15" value="${p.dailyGoalMin}"></label>
+          <label class="field grow"><span>Daily study goal (hours)</span><input type="number" data-hours min="0.25" step="0.25" value="${p.dailyGoalMin / 60}"></label>
           <label class="field grow"><span>Usual study time</span><select data-p="studyHour">${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${p.studyHour === h ? "selected" : ""}>${new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: "numeric" })}</option>`).join("")}</select></label>
         </div>
       </div>
@@ -132,6 +132,10 @@ export function renderMe(el) {
     const k = i.dataset.p;
     s.profile[k] = k === "name" ? i.value.trim() : +i.value;
   })));
+  el.querySelector("[data-hours]").addEventListener("change", (e) => {
+    const h = parseFloat(e.target.value);
+    if (h > 0) update((s) => { s.profile.dailyGoalMin = Math.round(h * 60); });
+  });
   el.querySelectorAll("[data-pers]").forEach((b) => b.addEventListener("click", () => update((s) => { s.profile.personality = b.dataset.pers; })));
   el.querySelectorAll("[data-outfit]").forEach((b) => b.addEventListener("click", () => { update((s) => { s.profile.outfit = b.dataset.outfit; }); redrawToppy(); }));
   el.querySelectorAll("[data-theme-pick]").forEach((b) => b.addEventListener("click", () => update((s) => { s.profile.theme = b.dataset.themePick; })));
