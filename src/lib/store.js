@@ -26,7 +26,6 @@ export function defaultState() {
       chime: true,
       eyeRule: true,
       notifications: false,
-      playlistUrl: "",
       lastBackup: 0,
       lastRecapWeek: "",
       dayPlan: null,                // { date, items: [{ taskId, start, end }] }

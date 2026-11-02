@@ -1,32 +1,15 @@
-// Sounds panel: piano playlist, ambient mixer, your own Spotify/YouTube playlist, stop-all.
+// Sounds panel: music playlists (piano, acoustic), ambient mixer, stop-all.
 // Used in Focus, the Me tab and the music bar's "Sounds" dialog.
-import { S, update } from "../lib/store.js";
 import { on } from "../lib/bus.js";
 import { esc } from "../lib/utils.js";
 import { AMBIENT, setAmbient, ambientLevel, unlockAudio } from "../lib/audio.js";
 import * as piano from "../lib/player.js";
 import { isUnlocked, unlockLevel } from "../lib/rewards.js";
-import { mountEmbed, stopAllSound } from "./dock.js";
+import { stopAllSound } from "./dock.js";
 import { toast } from "./ui.js";
 
-// Turns a Spotify/YouTube link into an embeddable player (or null).
-export function embedFor(url) {
-  if (!url) return null;
-  let m;
-  if ((m = url.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(?:embed\/)?(playlist|album|track|artist|show|episode)\/([A-Za-z0-9]+)/i))
-    || (m = url.match(/^spotify:(playlist|album|track|artist|show|episode):([A-Za-z0-9]+)/i))) {
-    const type = m[1].toLowerCase();
-    return { kind: "spotify", src: `https://open.spotify.com/embed/${type}/${m[2]}?utm_source=generator&theme=0`, app: `spotify:${type}:${m[2]}`, web: `https://open.spotify.com/${type}/${m[2]}` };
-  }
-  if ((m = url.match(/[?&]list=([A-Za-z0-9_-]+)/))) return { kind: "youtube", src: `https://www.youtube.com/embed/videoseries?list=${m[1]}` };
-  if ((m = url.match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/))) return { kind: "youtube", src: `https://www.youtube.com/embed/${m[1]}` };
-  return null;
-}
-
 export function renderSounds(container) {
-  const p = S().profile;
   const ps = piano.pianoState();
-  const embed = embedFor(p.playlistUrl);
   container.innerHTML = `
     <div class="stack">
       <div class="row between wrap">
@@ -55,21 +38,6 @@ export function renderSounds(container) {
         }).join("")}
       </div>
 
-      <div><h3>🎵 Your own playlist</h3><p class="small muted">Paste a Spotify or YouTube link.</p></div>
-      <div class="row">
-        <input type="url" placeholder="https://open.spotify.com/playlist/…" value="${esc(p.playlistUrl)}" data-playlist class="grow">
-        <button class="btn sm" data-saveplaylist>Save</button>
-      </div>
-      ${p.playlistUrl ? `<div class="row wrap">
-        ${embed ? `<button class="btn sm primary" data-embed>▶ Play in onTop</button>` : ""}
-        ${embed?.kind === "spotify" ? `<button class="btn sm" data-openapp>🟢 Open in Spotify app</button>` : `<button class="btn sm" data-openplaylist>↗ Open in YouTube</button>`}
-      </div>
-      ${embed?.kind === "spotify" ? `<div class="card flat stack tight" style="padding:12px">
-        <b class="small">Only hearing short previews?</b>
-        <p class="tiny muted">That's Spotify's rule: the player inside other sites plays full songs only when you're logged in to Spotify <b>in this same browser</b> (works in Chrome &amp; Edge; Safari and Firefox block it). <b>“Open in Spotify app” always plays full songs</b>, free or Premium.</p>
-        <div class="row wrap"><button class="btn sm" data-spotifylogin>🔑 Log in to Spotify here</button><button class="btn sm ghost" data-reloadembed>↻ I've logged in — reload player</button></div>
-      </div>` : ""}
-      ${!embed ? `<p class="tiny" style="color:var(--warn)">That link can't be played inside onTop. Use a full open.spotify.com or youtube.com link — short spotify.link links won't work.</p>` : ""}` : ""}
     </div>`;
 
   const tracksBox = container.querySelector("[data-tracks]");
@@ -109,35 +77,4 @@ export function renderSounds(container) {
     unlockAudio();
     setAmbient(r.dataset.amb, +r.value);
   }));
-  container.querySelector("[data-saveplaylist]").addEventListener("click", () => {
-    const v = container.querySelector("[data-playlist]").value.trim();
-    update((st) => { st.profile.playlistUrl = v; });
-    renderSounds(container);
-  });
-  container.querySelector("[data-openplaylist]")?.addEventListener("click", () => window.open(p.playlistUrl, "_blank", "noopener"));
-  container.querySelector("[data-openapp]")?.addEventListener("click", () => {
-    piano.pause();
-    // Hand off to the installed Spotify app; if it isn't installed, fall back to the web player.
-    let left = false;
-    const onBlur = () => { left = true; };
-    window.addEventListener("blur", onBlur, { once: true });
-    location.href = embed.app;
-    setTimeout(() => {
-      window.removeEventListener("blur", onBlur);
-      if (!left) window.open(embed.web, "_blank", "noopener");
-    }, 1500);
-  });
-  container.querySelector("[data-spotifylogin]")?.addEventListener("click", () => {
-    window.open("https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F", "spotify-login", "width=480,height=720");
-    toast("Log in, close that window, then tap “reload player”.");
-  });
-  container.querySelector("[data-reloadembed]")?.addEventListener("click", () => {
-    mountEmbed({ ...embed, src: embed.src + "&t=" + Date.now() });
-    toast("Player reloaded 🎵");
-  });
-  container.querySelector("[data-embed]")?.addEventListener("click", () => {
-    piano.pause();
-    mountEmbed(embed);
-    toast("Playing in the music bar — press play in the player 🎵");
-  });
 }
