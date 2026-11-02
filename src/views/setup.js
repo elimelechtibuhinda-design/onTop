@@ -3,6 +3,7 @@ import { update } from "../lib/store.js";
 import { esc, uid, todayKey } from "../lib/utils.js";
 import { COURSE_COLORS } from "../lib/queries.js";
 import { toppySvg } from "../components/toppy.js";
+import { countEvent } from "../lib/analytics.js";
 import { EMOJIS } from "./plan.js";
 
 export function renderSetup(root, onDone) {
@@ -117,6 +118,7 @@ export function renderSetup(root, onDone) {
           if (ex.date) st.events.push({ id: uid(), courseId: d.courses[i].id, title: ex.title, type: "exam", date: ex.date });
         });
       });
+      countEvent("new-user");
       onDone();
     });
   };

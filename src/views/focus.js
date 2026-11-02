@@ -9,6 +9,7 @@ import { rewardSession, lastSessionKey } from "../lib/rewards.js";
 import { openDialog, confirmDialog, toast, courseOptions } from "../components/ui.js";
 import { renderSounds } from "../components/sounds.js";
 import { GAMES } from "../games/index.js";
+import { countEvent } from "../lib/analytics.js";
 import { openPip, closePip, pipOpen, updatePip, pipPing, showButtons as pipButtons, REASONS } from "../components/pip.js";
 import { say, requestNotifications } from "../components/toppy.js";
 
@@ -417,6 +418,7 @@ function checkIn({ durationSec, completed, quitEarly = false, then }) {
         st.parking.forEach((p) => { if (parkDone.includes(p.id)) p.done = true; });
       });
       rewardSession(session, { quitEarly, prevLastKey: prevLast });
+      countEvent("focus-session");
       if (taskOutcome === "done") emit("celebrate", { text: `Task done: ${task.title} ✅` });
       close();
     });

@@ -33,3 +33,19 @@ npm run icons     # regenerate PNG icons from public/icon.svg
 Pushing to `main` on GitHub runs `.github/workflows/deploy.yml`, which builds the site and publishes it to GitHub Pages. Turn it on once in the repo under **Settings → Pages → Source: GitHub Actions**.
 
 The build is a plain static site, so `dist/` also works on Netlify, Cloudflare Pages, or any other static host.
+
+## Visitor counts (optional)
+
+onTop can count users anonymously with [GoatCounter](https://www.goatcounter.com). It's free for non-commercial use, sets no cookies and collects no personal data.
+
+What gets counted:
+- each time someone opens onTop (`/app`, or `/app-installed` for the installed app)
+- `new-user`, when someone finishes setup
+- `focus-session`, when someone saves a session
+
+Nothing a student types is ever sent. Students can opt out in **Me → Privacy**, and Do Not Track is respected.
+
+To turn it on:
+1. Sign up at goatcounter.com and pick a site code (e.g. `ontop` → `ontop.goatcounter.com`).
+2. In the GitHub repo, go to **Settings → Secrets and variables → Actions → Variables** and add `GOATCOUNTER_CODE` with your code.
+3. Push. The deploy build picks it up. Without the variable, counting is completely off.
