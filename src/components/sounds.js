@@ -13,7 +13,7 @@ export function renderSounds(container) {
   container.innerHTML = `
     <div class="stack">
       <div class="row between wrap">
-        <div><h3>🎶 Focus music</h3><p class="small muted" data-blurb>${esc(ps.playlist.blurb)} Real recordings, no lyrics.</p></div>
+        <div><h3>🎶 Focus music</h3><p class="small muted" data-blurb>${esc(ps.playlist.blurb)}</p></div>
         <button class="btn sm danger" data-stopall>⏹ Stop all sound</button>
       </div>
       <div class="chips" data-lists>${Object.entries(piano.PLAYLISTS).map(([id, pl]) => `<button class="chip ${ps.list === id ? "active" : ""}" data-list="${id}">${pl.emoji} ${esc(pl.name)}</button>`).join("")}</div>
@@ -46,7 +46,7 @@ export function renderSounds(container) {
     const s = piano.pianoState();
     container.querySelectorAll("[data-list]").forEach((b) => b.classList.toggle("active", b.dataset.list === s.list));
     const blurb = container.querySelector("[data-blurb]");
-    if (blurb) blurb.textContent = `${s.playlist.blurb} Real recordings, no lyrics.`;
+    if (blurb) blurb.textContent = s.playlist.blurb;
     tracksBox.innerHTML = s.playlist.tracks.map((t) => {
       const cur = t.id === s.track.id;
       return `<button class="list-row" data-track="${t.id}" style="background:none;border:0;border-bottom:1px solid var(--rule);cursor:pointer;text-align:left;color:inherit;width:100%">

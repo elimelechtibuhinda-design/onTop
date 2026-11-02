@@ -26,6 +26,8 @@ function ensure() {
   return ctx;
 }
 export function unlockAudio() { ensure(); }
+// Shared context + master output for the music player.
+export function getAudio() { return ensure() ? { ctx, master } : null; }
 
 /* ---------- noise sources ---------- */
 const buffers = {};

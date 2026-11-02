@@ -21,8 +21,7 @@ export function mountDock() {
 }
 
 function pianoActive() {
-  const s = piano.pianoState();
-  return s.playing || s.time > 0;
+  return piano.pianoState().active;
 }
 
 function draw() {
