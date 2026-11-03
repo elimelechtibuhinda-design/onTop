@@ -8,7 +8,7 @@ routes = [{ pattern = "sync.imdialedin.app", custom_domain = true }]
 [[d1_databases]]
 binding = "DB"
 database_name = "dialedin-sync"
-database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+database_id = "41bb1c6a-ff81-4ab7-8bfd-701c6a3a352c"
 
 [vars]
 ALLOWED_ORIGINS = "https://imdialedin.app,http://localhost:5173,http://localhost:4173"
