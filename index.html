@@ -10,7 +10,23 @@
   <title>Dialed In</title>
 </head>
 <body>
-  <div id="app" aria-live="polite"></div>
+  <div id="app" aria-live="polite"><p id="boot-msg" style="font:600 16px system-ui,sans-serif;color:#52637a;text-align:center;margin-top:40vh">Loading Dialed In…</p></div>
+  <script>
+    // Right after a deploy, a cached copy of this page can point at code files that were just replaced.
+    // If one fails to load, reload with a cache-busting query (up to twice) instead of showing a white page.
+    addEventListener("error", function (e) {
+      var t = e.target;
+      if (!t || (t.tagName !== "SCRIPT" && t.tagName !== "LINK")) return;
+      var n = 0;
+      try { n = +sessionStorage.getItem("dialedin-retry") || 0; sessionStorage.setItem("dialedin-retry", n + 1); } catch (_) { n = 9; }
+      if (n < 2) {
+        setTimeout(function () { var u = new URL(location.href); u.searchParams.set("r", Date.now()); location.replace(u); }, 1200 * (n + 1));
+      } else {
+        var m = document.getElementById("boot-msg");
+        if (m) m.innerHTML = 'Dialed In just got updated and is still arriving.<br><a href="./" style="color:#0055B7">Tap to refresh</a>';
+      }
+    }, true);
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

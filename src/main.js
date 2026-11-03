@@ -118,6 +118,9 @@ function onMinute() {
 }
 
 async function boot() {
+  // We loaded fine: clear the reload-retry counter and the cache-busting ?r= from the address bar.
+  try { sessionStorage.removeItem("dialedin-retry"); } catch { /* ignore */ }
+  if (location.search.includes("r=")) history.replaceState(null, "", location.pathname + location.hash);
   await loadState();
   applyPrefs();
   requestPersistence();
