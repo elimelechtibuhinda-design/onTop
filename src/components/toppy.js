@@ -149,7 +149,7 @@ export function redraw() {
   btn.classList.toggle("excited", excitedUntil > Date.now());
 }
 
-function hideBubble() {
+export function hideBubble() {
   clearTimeout(hideTimer);
   bubbleEl?.remove();
   bubbleEl = null;

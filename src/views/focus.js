@@ -11,13 +11,13 @@ import { renderSounds } from "../components/sounds.js";
 import { GAMES } from "../games/index.js";
 import { countEvent } from "../lib/analytics.js";
 import { openPip, closePip, pipOpen, updatePip, pipPing, showButtons as pipButtons, REASONS } from "../components/pip.js";
-import { say, requestNotifications } from "../components/toppy.js";
+import { say, requestNotifications, hideBubble } from "../components/toppy.js";
 
 export const MODES = {
-  pomodoro: { name: "Pomodoro", desc: "25 focus · 5 break · long break every 4", focus: 25, brk: 5, long: 15 },
-  deep: { name: "Deep work", desc: "50 focus · 10 break", focus: 50, brk: 10, long: 20 },
-  custom: { name: "Custom", desc: "Your own lengths", focus: 40, brk: 8, long: 15 },
-  stopwatch: { name: "Stopwatch", desc: "Count up, break when you want", focus: 0, brk: 5, long: 5 },
+  pomodoro: { name: "Pomodoro 25/5", desc: "25 focus · 5 break · long break every 4", focus: 25, brk: 5, long: 15 },
+  deep: { name: "Pomodoro 50/10", desc: "50 focus · 10 break", focus: 50, brk: 10, long: 20 },
+  custom: { name: "Pomodoro (my lengths)", desc: "Your own lengths", focus: 40, brk: 8, long: 15 },
+  stopwatch: { name: "Free timer", desc: "Count up, stop when you want", focus: 0, brk: 5, long: 5 },
 };
 
 const KEY = "ontop-timer";
@@ -50,7 +50,7 @@ const nextPingDelay = () => (10 + Math.random() * 10) * 60000;     // 10–20 mi
 // Phones: leaving the app is usually the distraction. Laptops: you study in other tabs/apps.
 export const defaultWhere = () => (matchMedia("(pointer: coarse)").matches ? "here" : "elsewhere");
 function freshFocusStats() {
-  return { distractedSec: 0, hiddenAt: null, distractions: 0, reasons: {}, pings: { yes: 0, no: 0 }, nextPingAt: now() + nextPingDelay() };
+  return { pausedSec: 0, hiddenAt: null, distractions: 0, reasons: {}, pings: { yes: 0, no: 0 }, nextPingAt: now() + nextPingDelay() };
 }
 function elapsed() {
   if (!T.active) return 0;
@@ -155,6 +155,7 @@ function startNextFocus() {
 
 function endAll() {
   closePip();
+  hideBubble();   // e.g. an unanswered "still on task?" ping from this session
   stopGame();
   stopTicking();
   T = { active: false };
@@ -165,11 +166,29 @@ function endAll() {
   emit("timerEnded");
 }
 
+// Pausing during focus means "I got distracted": the study clock freezes and a distraction
+// clock runs until they resume. That time is logged on the session, never counted as study.
 function togglePause() {
-  if (T.pausedAt) { T.phaseStart += now() - T.pausedAt; T.pausedAt = null; }
-  else T.pausedAt = now();
+  if (T.pausedAt) {
+    const away = now() - T.pausedAt;
+    T.phaseStart += away;
+    T.pausedAt = null;
+    if (T.phase === "focus") {
+      T.pausedSec = (T.pausedSec || 0) + away / 1000;
+      if (away >= 5000) toast(`Welcome back! ${fmtHM(away / 1000) === "0m" ? "<1m" : fmtHM(away / 1000)} distracted logged 💪`);
+    }
+  } else {
+    T.pausedAt = now();
+    T.pausedReasonLogged = false;
+    if (T.phase === "focus") T.distractions = (T.distractions || 0) + 1;
+  }
   persist();
   render();
+  pipButtons(!!T.pausedAt);
+}
+// Distracted seconds so far this focus round, including a pause that's still running.
+function distractedSoFar() {
+  return (T.pausedSec || 0) + (T.pausedAt && T.phase === "focus" ? (now() - T.pausedAt) / 1000 : 0);
 }
 
 /* ---------------- ticking ---------------- */
@@ -193,7 +212,10 @@ function tick() {
     if (bar && T.phaseDurSec) bar.style.width = Math.min(100, (el / T.phaseDurSec) * 100) + "%";
   }
   if (mini) mini.querySelector("b").textContent = display;
-  updatePip(display, T.pausedAt ? "Paused" : T.phase === "focus" ? "Focus" : "Break", T.phase === "break");
+  const distracted = T.pausedAt && T.phase === "focus" ? fmtHMS((now() - T.pausedAt) / 1000) : "";
+  const dc = root?.querySelector("[data-distclock]");
+  if (dc) dc.textContent = distracted;
+  updatePip(display, T.pausedAt ? (T.phase === "focus" ? "Paused · distracted" : "Paused") : T.phase === "focus" ? "Focus" : "Break", T.phase === "break", distracted);
   if (T.phase === "focus" && !T.pausedAt && !T.checkinOpen && S().profile.focusPings !== false && now() >= (T.nextPingAt || Infinity)) {
     T.nextPingAt = now() + nextPingDelay(); persist();
     sendPing();
@@ -237,7 +259,10 @@ function onVisibility() {
       <button class="btn primary" data-close>I was studying ✓</button>
     </div>`, (dlg, close) => {
     dlg.querySelector("[data-dist]").addEventListener("click", () => {
-      T.distractedSec = (T.distractedSec || 0) + awaySec; persist(); close();
+      T.pausedSec = (T.pausedSec || 0) + awaySec;
+      T.phaseStart += awaySec * 1000;          // that time doesn't count as study
+      T.distractions = (T.distractions || 0) + 1;
+      persist(); close(); render();
       toast("Logged. Let's lock back in 🔒");
     });
   });
@@ -302,21 +327,26 @@ function onReturnForPing() {
   }
 }
 
-function showReasonChips() {
+function showReasonChips(sticky = false) {
   const box = root?.querySelector("[data-reasonbox]");
   if (!box) return;
+  if (sticky && T.pausedReasonLogged) return;
   box.innerHTML = `<div class="small" style="margin-bottom:6px">What pulled you away?</div><div class="chips" style="justify-content:center">${REASONS.map(([k, l]) => `<button class="chip" data-r="${k}">${l}</button>`).join("")}</div>`;
   box.querySelectorAll("[data-r]").forEach((b) => b.addEventListener("click", () => {
-    logReason(b.dataset.r); box.innerHTML = ""; toast("Logged. Back to it 💪");
+    logReason(b.dataset.r); box.innerHTML = "";
+    if (T.pausedAt) { T.pausedReasonLogged = true; persist(); toast("Noted. Tap “I'm back” when you're ready."); }
+    else toast("Logged. Back to it 💪");
   }));
   clearTimeout(showReasonChips.t);
-  showReasonChips.t = setTimeout(() => { if (box.isConnected) box.innerHTML = ""; }, 10000);
+  if (!sticky) showReasonChips.t = setTimeout(() => { if (box.isConnected) box.innerHTML = ""; }, 10000);
 }
 
 function focusStatsLine() {
   const p = T.pings || { yes: 0, no: 0 };
   const answered = p.yes + p.no;
-  return `😵 ${T.distractions || 0} distraction${T.distractions === 1 ? "" : "s"}${answered ? ` · ✅ ${p.yes}/${answered} on-task check-ins` : ""}`;
+  const n = T.distractions || 0;
+  const sec = T.pausedSec || 0;
+  return `😵 ${n} distraction${n === 1 ? "" : "s"}${sec >= 30 ? ` · ${fmtHM(sec)} distracted` : ""}${answered ? ` · ✅ ${p.yes}/${answered} on-task check-ins` : ""}`;
 }
 function refreshFocusStats() {
   const el = root?.querySelector("[data-fstats]");
@@ -325,10 +355,10 @@ function refreshFocusStats() {
 
 async function popOut() {
   const ok = await openPip({
-    onDistracted: () => logDistraction(),
     onReason: (r) => logReason(r),
     onPing: (yes) => answerPing(yes),
     onPause: () => togglePause(),
+    isPaused: () => !!T.pausedAt,
     onBack: () => { minimized = false; openOverlay(); },
     onClose: () => {},
   });
@@ -345,18 +375,19 @@ function checkIn({ durationSec, completed, quitEarly = false, then }) {
   let taskOutcome = "keep";
   const ctx = { ...T };
   let distractions = ctx.distractions || 0;
+  const pausedSec = distractedSoFar();
   const pings = ctx.pings || { yes: 0, no: 0 };
   const answered = pings.yes + pings.no;
   openDialog(`
     <h2>${quitEarly ? "Session ended early" : "Session complete! 🎉"}</h2>
-    <p class="muted">${esc(courseName(ctx.courseId))} · ${fmtHM(durationSec)}${ctx.distractedSec ? ` · ${fmtHM(ctx.distractedSec)} distracted` : ""}</p>
+    <p class="muted">${esc(courseName(ctx.courseId))} · ${fmtHM(durationSec)} focused${pausedSec >= 30 ? ` · 😵 ${fmtHM(pausedSec)} distracted` : ""}</p>
     ${quitEarly ? `<p class="small">🥀 Ending early wilts this session's plant. That's okay — the minutes still count.</p>` : ""}
     <div class="field"><span>How focused were you?</span>
       <div class="chips" data-focus>
         ${["😩 Rough", "😐 Meh", "🙂 Good", "🔥 Locked in"].map((l, i) => `<button class="chip" data-v="${i + 1}">${l}</button>`).join("")}
       </div>
     </div>
-    <div class="field"><span>How many times did you get distracted? <span class="hint">${ctx.distractions ? `you logged ${ctx.distractions}` : "best guess is fine"}</span></span>
+    <div class="field"><span>How many times did you get distracted? <span class="hint">${ctx.distractions ? `you paused ${ctx.distractions}×` : "best guess is fine"}</span></span>
       <div class="chips" data-dcount>${[0, 1, 2, 3, 4, 5].map((n) => `<button class="chip ${Math.min(distractions, 5) === n ? "active" : ""}" data-v="${n}">${n === 5 ? "5+" : n}</button>`).join("")}</div>
       ${answered ? `<span class="hint">🎯 Check-ins: on task ${pings.yes} of ${answered} time${answered > 1 ? "s" : ""}</span>` : ""}</div>
     <label class="field"><span>What did you cover? <span class="hint">(optional)</span></span>
@@ -400,7 +431,7 @@ function checkIn({ durationSec, completed, quitEarly = false, then }) {
       const startMs = now() - durationSec * 1000;
       const session = {
         id: uid(), courseId: ctx.courseId, taskId: ctx.taskId, start: startMs, durationSec: Math.round(durationSec),
-        distractedSec: Math.round(ctx.distractedSec || 0), focus, note, dateKey: dateKey(new Date(startMs)),
+        distractedSec: 0, pausedSec: Math.round(pausedSec), focus, note, dateKey: dateKey(new Date(startMs)),
         mode: ctx.mode, completed,
         distractions, reasons: ctx.reasons || {}, pings: { ...pings }, where: ctx.where || "elsewhere",
       };
@@ -495,8 +526,7 @@ function render(draft) {
       ${isFocus ? `<div class="working">${T.workingOn ? `Working on: <b>${esc(T.workingOn)}</b>` : `<input type="text" data-working placeholder="What are you working on? (one line)" aria-label="What are you working on">`}</div>` : ""}
       <div class="focus-actions">
         ${isFocus ? `
-          <button class="btn" data-pause>${T.pausedAt ? "▶ Resume" : "⏸ Pause"}</button>
-          <button class="btn" data-distracted>😵 Got distracted</button>
+          <button class="btn ${T.pausedAt ? "gold" : ""}" data-pause>${T.pausedAt ? "▶ I'm back — resume" : "⏸ Pause"}</button>
           <button class="btn" data-popout title="A small timer that floats over your other apps">🪟 Pop-out timer</button>
           ${T.mode === "stopwatch" ? `<button class="btn" data-takebreak>☕ Take a break</button>` : ""}
           <button class="btn gold" data-finish>${T.mode === "stopwatch" ? "✓ Finish session" : "■ End session"}</button>`
@@ -504,11 +534,16 @@ function render(draft) {
           ${T.breakOver ? `<button class="btn gold" data-next>▶ Start round ${T.round + 1}</button>` : `<button class="btn" data-next>⏭ Skip break</button>`}
           <button class="btn" data-stop>Done for now</button>`}
       </div>
+      ${isFocus && T.pausedAt ? `<div class="dist-clock" role="status">
+          <div class="label" style="color:var(--gold)">😵 Distracted for</div>
+          <div class="mono" data-distclock style="font-size:2.2rem;font-weight:800;color:var(--gold)">00:00</div>
+          <div class="tiny" style="color:#a9bdd6">Your study timer is frozen. This time is logged as distracted, not study.</div>
+        </div>` : ""}
       ${isFocus ? `<div data-reasonbox></div>
         <div class="small" style="color:#a9bdd6" data-fstats>${focusStatsLine()}</div>
         <div class="tiny" style="color:#a9bdd6;max-width:520px">${T.where === "here"
           ? "📱 Studying right here — leaving onTop counts as a possible distraction."
-          : "💻 Working in other tabs/apps is fine. Pop out the mini timer to log distractions and answer quick “still on task?” check-ins."}</div>` : ""}
+          : "💻 Working in other tabs/apps is fine."} Got distracted? Hit <b>Pause</b> — the distraction timer runs until you're back. Pop out the mini timer to keep it beside your work.</div>` : ""}
       ${!isFocus && !T.breakOver ? `
         <p class="muted" style="color:#cfe7da">Stand up · drink water 💧 · look outside. Or play something — games lock when the break ends.</p>
         <div class="games-grid">${GAMES.map((g) => `<button class="game-tile" data-game="${g.id}"><span class="e">${g.emoji}</span>${esc(g.name)}</button>`).join("")}</div>
@@ -519,7 +554,7 @@ function render(draft) {
   root.querySelectorAll("[data-panel]").forEach((b) => b.addEventListener("click", () => { panel = panel === b.dataset.panel ? null : b.dataset.panel; render(); }));
   root.querySelector("[data-min]").addEventListener("click", minimize);
   root.querySelector("[data-pause]")?.addEventListener("click", togglePause);
-  root.querySelector("[data-distracted]")?.addEventListener("click", () => { logDistraction(); showReasonChips(); });
+  if (isFocus && T.pausedAt) showReasonChips(true);
   root.querySelector("[data-popout]")?.addEventListener("click", popOut);
   root.querySelector("[data-takebreak]")?.addEventListener("click", () => {
     const dur = elapsed();
@@ -587,9 +622,13 @@ function renderSetup(draft) {
   root.innerHTML = `
     <div class="focus-top"><b>Start a focus session</b><button class="icon-btn" data-close aria-label="Close">✕</button></div>
     <div class="focus-center">
-      <div class="mode-cards">
-        ${Object.entries(MODES).map(([id, m]) => `<button class="mode-card ${draft.mode === id ? "active" : ""}" data-mode="${id}"><b>${m.name}</b><span>${id === "custom" ? `${p.customFocusMin} focus · ${p.customBreakMin} break` : m.desc}</span></button>`).join("")}
+      <div class="mode-cards" style="grid-template-columns:1fr 1fr">
+        <button class="mode-card ${draft.mode !== "stopwatch" ? "active" : ""}" data-mode="${draft.mode !== "stopwatch" ? draft.mode : p.pomoMode || "pomodoro"}"><b>🍅 Pomodoro</b><span>Timed focus rounds with breaks in between</span></button>
+        <button class="mode-card ${draft.mode === "stopwatch" ? "active" : ""}" data-mode="stopwatch"><b>⏱️ Free timer</b><span>Start it yourself, stop when you're done</span></button>
       </div>
+      ${draft.mode !== "stopwatch" ? `<div class="chips" style="justify-content:center">
+        ${[["pomodoro", "25 min · 5 break"], ["deep", "50 min · 10 break"], ["custom", `My own (${p.customFocusMin} · ${p.customBreakMin})`]].map(([id, l]) => `<button class="chip ${draft.mode === id ? "active" : ""}" data-mode="${id}">${l}</button>`).join("")}
+      </div>` : ""}
       ${draft.mode === "custom" ? `<div class="panel row wrap">
         <label class="field grow"><span>Focus (min)</span><input type="number" min="1" value="${p.customFocusMin}" data-cf></label>
         <label class="field grow"><span>Break (min)</span><input type="number" min="1" value="${p.customBreakMin}" data-cb></label></div>` : ""}
@@ -612,7 +651,11 @@ function renderSetup(draft) {
       <button class="btn gold lg" data-go>▶ Start focusing</button>
     </div>`;
   root.querySelector("[data-close]").addEventListener("click", closeOverlay);
-  root.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { draft.mode = b.dataset.mode; renderSetup(draft); }));
+  root.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    draft.mode = b.dataset.mode;
+    if (draft.mode !== "stopwatch") update((s2) => { s2.profile.pomoMode = draft.mode; });
+    renderSetup(draft);
+  }));
   root.querySelector("[data-course]").addEventListener("change", (e) => { draft.courseId = e.target.value; draft.taskId = ""; renderSetup(draft); });
   root.querySelector("[data-task]").addEventListener("change", (e) => {
     draft.taskId = e.target.value;

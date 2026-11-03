@@ -82,6 +82,10 @@ export function renderToday(el) {
         </div>
         ${ring(todaySec / goalSec, { inner: `<b>${fmtHM(todaySec)}</b><span class="tiny" style="color:#c9d8ea">of ${fmtHM(goalSec)}</span>` })}
         <div class="stack hero-actions">
+          <div class="hero-modes" role="radiogroup" aria-label="Timer type">
+            <button role="radio" aria-checked="${p.timerMode !== "stopwatch"}" class="${p.timerMode !== "stopwatch" ? "on" : ""}" data-tmode="pomo">🍅 Pomodoro</button>
+            <button role="radio" aria-checked="${p.timerMode === "stopwatch"}" class="${p.timerMode === "stopwatch" ? "on" : ""}" data-tmode="free">⏱️ Free timer</button>
+          </div>
           <div class="row wrap">
             <select class="course-pick" data-course aria-label="Course to study">${courseOptions(st.courses, p.lastCourseId || st.courses[0]?.id || "")}</select>
             <button class="start-btn" data-start>▶ Start</button>
@@ -149,6 +153,9 @@ export function renderToday(el) {
     update((s) => { s.profile.lastCourseId = courseId; });
     openFocus({ courseId, quick: true });
   });
+  el.querySelectorAll("[data-tmode]").forEach((b) => b.addEventListener("click", () => update((s2) => {
+    s2.profile.timerMode = b.dataset.tmode === "free" ? "stopwatch" : (s2.profile.pomoMode || "pomodoro");
+  })));
   el.querySelector("[data-setup]").addEventListener("click", () => openFocus({ courseId: el.querySelector("[data-course]").value }));
   el.querySelector("[data-backup]")?.addEventListener("click", backupNow);
   el.querySelector("[data-recap]")?.addEventListener("click", () => emit("go", { view: "stats", recap: recapWeek }));

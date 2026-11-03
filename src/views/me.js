@@ -207,10 +207,10 @@ async function restoreFrom(file) {
 }
 
 function exportCsv() {
-  const rows = [["date", "start_time", "course", "minutes", "away_minutes", "distractions", "on_task_checkins", "checkins_answered", "focus_1to4", "mode", "note"]];
+  const rows = [["date", "start_time", "course", "minutes", "distracted_minutes", "distractions", "on_task_checkins", "checkins_answered", "focus_1to4", "mode", "note"]];
   S().sessions.slice().sort((a, b) => a.start - b.start).forEach((s) => rows.push([
     s.dateKey, new Date(s.start).toTimeString().slice(0, 5), courseName(s.courseId), Math.round(s.durationSec / 60),
-    Math.round((s.distractedSec || 0) / 60), s.distractions ?? "", s.pings?.yes ?? "", s.pings ? s.pings.yes + s.pings.no : "",
+    Math.round(((s.pausedSec || 0) + (s.distractedSec || 0)) / 60), s.distractions ?? "", s.pings?.yes ?? "", s.pings ? s.pings.yes + s.pings.no : "",
     s.focus || "", s.mode || "", s.note || "",
   ]));
   const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");

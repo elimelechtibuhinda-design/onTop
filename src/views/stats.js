@@ -153,6 +153,8 @@ function focusQuality() {
   }
   const hours = tracked.reduce((a, s) => a + s.durationSec, 0) / 3600;
   const dCount = tracked.reduce((a, s) => a + (s.distractions || 0), 0);
+  const lostSec = tracked.reduce((a, s) => a + (s.pausedSec || 0), 0);
+  const lostPct = hours ? Math.round((lostSec / (hours * 3600 + lostSec)) * 100) : 0;
   const perHour = hours ? dCount / hours : 0;
   const pings = tracked.reduce((a, s) => ({ yes: a.yes + (s.pings?.yes || 0), no: a.no + (s.pings?.no || 0) }), { yes: 0, no: 0 });
   const answered = pings.yes + pings.no;
@@ -173,15 +175,15 @@ function focusQuality() {
     <div class="grid-3">
       <div><span class="label">On task when checked</span><div class="big-num">${onTask === null ? "—" : onTask + "%"}</div>
         <p class="tiny muted">${answered ? `${pings.yes} of ${answered} “still on task?” check-ins` : "Turn on focus pings to measure this"}</p></div>
-      <div><span class="label">Distractions / hour</span><div class="big-num">${perHour.toFixed(1)}</div>
-        <p class="tiny muted">${dCount} logged in ${Math.round(hours * 10) / 10}h ${trend ? "· " + trend : ""}</p></div>
+      <div><span class="label">Time distracted</span><div class="big-num">${fmtHM(lostSec)}</div>
+        <p class="tiny muted">${lostPct}% of your study time · ${dCount} pause${dCount === 1 ? "" : "s"} (${perHour.toFixed(1)}/hour) ${trend ? "· " + trend : ""}</p></div>
       <div><span class="label">Your focus rating</span><div class="big-num">${avgRating === null ? "—" : ["", "😩", "😐", "🙂", "🔥"][Math.round(avgRating)] + " " + avgRating.toFixed(1)}</div>
         <p class="tiny muted">out of 4, from your check-ins</p></div>
     </div>
     ${top.length ? `<div style="margin-top:14px"><span class="label">What pulls you away</span>
       ${top.map(([k, v]) => `<div class="hbar"><span class="name small">${REASON_LABEL[k] || k}</span><div class="bar"><i style="width:${(v / maxR) * 100}%;background:var(--warn)"></i></div><span class="val small">${v}×</span></div>`).join("")}
       <p class="small" style="margin-top:8px">💡 ${esc(REASON_TIP[top[0][0]] || REASON_TIP.other)}</p></div>` : ""}
-    <p class="tiny muted" style="margin-top:10px">Browsers can't see your other tabs or apps (that's a privacy protection), so onTop measures focus from what you log, random check-ins, and your own rating — no spying.</p>`;
+    <p class="tiny muted" style="margin-top:10px">Pausing the timer = distracted: that time is tracked separately and never counts as study. Browsers can't see your other tabs or apps (a privacy protection), so onTop measures focus from your pauses, random check-ins and your own rating — no spying.</p>`;
 }
 
 function balanceWarning() {
@@ -212,7 +214,7 @@ function sessionLog() {
       html += `<div class="label" style="margin:14px 0 4px">${fmtDate(s.dateKey, { weekday: "long", month: "short", day: "numeric" })} · ${fmtHM(secOn(s.dateKey))}</div>`;
     }
     html += `<div class="list-row"><span class="dot" style="background:${courseColor(s.courseId)}"></span>
-      <div class="grow"><b class="small">${esc(courseName(s.courseId))}</b> <span class="tiny muted">${fmtTime(s.start)} · ${s.mode || ""}${s.focus ? " · " + ["", "😩", "😐", "🙂", "🔥"][s.focus] : ""}${s.distractions ? ` · 😵 ${s.distractions}` : ""}${s.distractedSec ? ` · ${fmtHM(s.distractedSec)} away` : ""}</span>
+      <div class="grow"><b class="small">${esc(courseName(s.courseId))}</b> <span class="tiny muted">${fmtTime(s.start)} · ${s.mode || ""}${s.focus ? " · " + ["", "😩", "😐", "🙂", "🔥"][s.focus] : ""}${s.distractions ? ` · 😵 ${s.distractions}×` : ""}${(s.pausedSec || 0) + (s.distractedSec || 0) >= 30 ? ` · ${fmtHM((s.pausedSec || 0) + (s.distractedSec || 0))} distracted` : ""}</span>
         ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}</div>
       <span class="mono small">${fmtHM(s.durationSec)}</span>
       <button class="icon-btn" data-delsess="${s.id}" aria-label="Delete session">✕</button></div>`;
