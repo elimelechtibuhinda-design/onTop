@@ -92,11 +92,12 @@ export const dueFlashcards = (courseId = null) =>
 
 /* ---- XP, levels, ranks ---- */
 export const RANKS = [
-  { name: "Freshman", xp: 0, emoji: "🐣" },
-  { name: "Sophomore", xp: 300, emoji: "📗" },
-  { name: "Dean's List", xp: 1200, emoji: "🏅" },
-  { name: "Professor", xp: 3000, emoji: "🎓" },
-  { name: "Legend", xp: 6000, emoji: "🌟" },
+  { name: "Tuning In", xp: 0, emoji: "📻" },
+  { name: "Locked In", xp: 300, emoji: "🎧" },
+  { name: "Dialed In", xp: 1200, emoji: "🎯" },
+  { name: "In the Zone", xp: 3000, emoji: "🔥" },
+  { name: "Unstoppable", xp: 6000, emoji: "⚡" },
+  { name: "GOAT", xp: 10000, emoji: "🐐" },
 ];
 export const XP_PER_LEVEL = 120;
 export function levelInfo(xp = S().xp) {

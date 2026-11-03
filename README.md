@@ -13,7 +13,7 @@ Made with 💙💛 for students everywhere.
 - **Sound**: calm focus music: sleep-style pads and soft fingerpicked guitar generated live (no files, endless), plus four quiet public-domain piano recordings (credits in `public/music/CREDITS.md`), all levelled to the same calm volume; a rain, café, brown noise, fireplace, ocean and library-hum mixer; a music bar on every screen with one-tap stop; lock-screen controls; music gets quieter on breaks.
 - **Planning**: SMART goal builder with live S/M/A/R/T checks against your real history, goal reviews, weekly drag-and-drop board, tasks with carry-over, term calendar, exam prep planner, spaced review (1/3/7/14 days), grade tracker with a percentage → letter scale with a "what do I need on the final" calculator.
 - **Break-only games**: breathing bubble, memory match, 2048, reaction tap, doodle pad with gallery, word scramble, stretch cards, flashcards.
-- **Motivation**: XP and levels, ranks (Freshman → Legend), badges, unlockable themes, outfits and sounds, a study garden.
+- **Motivation**: XP and levels, ranks (Tuning In → Locked In → Dialed In → In the Zone → Unstoppable → GOAT), badges, unlockable themes, outfits and sounds, a study garden.
 - **Stats**: week chart, course split, year heatmap, best focus time, course balance warning, a shareable weekly recap image, session log.
 - **Course tools**: markdown notes, flashcards, links, exam-day checklist.
 - **Your data**: backup and restore (JSON), CSV export, delete everything. Installable as an app and works offline.
