@@ -3,6 +3,7 @@ import { S } from "../lib/store.js";
 import { esc, todayKey, shuffle } from "../lib/utils.js";
 import { gradeCard } from "../lib/flash.js";
 import { courseName } from "../lib/queries.js";
+import { faceHTML, hydrate } from "../components/cardface.js";
 
 export default {
   id: "flash", emoji: "📚", name: "Flashcards",
@@ -25,12 +26,13 @@ export default {
         <div class="stack">
           <div class="small center" style="opacity:.75">${i + 1} / ${deck.length} · ${esc(courseName(c.courseId))}${due.length ? " · due today" : ""}</div>
           <div class="flashcard ${flipped ? "flipped" : ""}" data-card role="button" tabindex="0" aria-label="Flashcard, tap to flip">
-            <div class="inner"><div class="face">${esc(c.front)}</div><div class="face back">${esc(c.back)}</div></div>
+            <div class="inner"><div class="face">${faceHTML(c.front, c.frontImg)}</div><div class="face back">${faceHTML(c.back, c.backImg)}</div></div>
           </div>
           ${flipped ? `<div class="row" style="justify-content:center"><button class="btn sm" data-no>↺ Again</button><button class="btn sm gold" data-yes>✓ Got it</button></div>`
             : `<p class="center small" style="opacity:.75">Tap the card to flip</p>`}
         </div>`;
       const card = el.querySelector("[data-card]");
+      hydrate(card);
       const flip = () => { flipped = !flipped; draw(); };
       card.addEventListener("click", flip);
       card.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } });

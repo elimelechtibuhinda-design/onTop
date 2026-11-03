@@ -5,3 +5,12 @@ CREATE TABLE IF NOT EXISTS blobs (
   data TEXT NOT NULL,           -- base64(iv + AES-GCM ciphertext of gzip(JSON))
   updated_at INTEGER NOT NULL
 );
+
+-- Flashcard pictures, encrypted on the device like everything else. One row per picture.
+CREATE TABLE IF NOT EXISTS images (
+  group_id TEXT NOT NULL,       -- same id as blobs.id
+  img_id TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (group_id, img_id)
+);

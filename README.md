@@ -15,7 +15,7 @@ Made with 💙💛 for students everywhere.
 - **Break-only games**: breathing bubble, memory match, 2048, reaction tap, doodle pad with gallery, word scramble, stretch cards, flashcards.
 - **Motivation**: XP and levels, ranks (Tuning In → Locked In → Dialed In → In the Zone → Unstoppable → GOAT), badges, unlockable themes, outfits and sounds, a study garden.
 - **Stats**: week chart, course split, year heatmap, best focus time, course balance warning, a shareable weekly recap image, session log.
-- **Course tools**: markdown notes, flashcards, links, exam-day checklist.
+- **Course tools**: markdown notes; flashcards with pictures (paste, drop or take a photo, shrunk on the device to about 100–200 KB) and formulas (`$…$`, rendered with KaTeX); links; exam-day checklist.
 - **Your data**: backup and restore (JSON), CSV export, delete everything. Installable as an app and works offline.
 
 ## Develop
@@ -56,7 +56,7 @@ Students can turn on sync in **Me → Sync between devices**. They get a 16-char
 
 - **End-to-end encrypted.** The code never leaves the device. From it, the app derives a lookup id and an AES-256 key (PBKDF2, 200k rounds). Data is gzipped and encrypted on the device, so the server only ever stores ciphertext.
 - **Merging** (`src/lib/sync-merge.js`): a three-way merge against the last agreed state. Additions from both devices are kept, an edit beats a deletion, settings merge field by field, and XP is recomputed from sessions. Tests: `npm test`.
-- **Server:** `worker/`, a Cloudflare Worker plus a D1 database at `https://sync.imdialedin.app` with three endpoints (GET / PUT with version check / DELETE). Break-art doodles and device-only settings don't sync.
+- **Server:** `worker/`, a Cloudflare Worker plus a D1 database at `https://sync.imdialedin.app`, with endpoints for the data (GET / PUT with version check / DELETE) and for flashcard pictures (`/v1/img/…`, encrypted the same way, max 600 per group). Break-art doodles and device-only settings don't sync.
 
 To deploy the server:
 ```bash

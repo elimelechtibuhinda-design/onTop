@@ -1,6 +1,6 @@
 // Me: profile, Toppy, level/badges/garden, themes, sounds, accessibility, notifications, data & privacy.
 import { S, update, replaceState, saveNow, defaultState, freezeSaves, listSnapshots, restoreSnapshot } from "../lib/store.js";
-import { kvSet, kvDel, kvKeys, doodleAll, doodleDelete, doodleClear, doodlePut } from "../lib/db.js";
+import { kvSet, kvDel, kvKeys, doodleAll, doodleDelete, doodleClear, doodlePut, imageAll, imagePut, imageClear } from "../lib/db.js";
 import { esc, uid, download, todayKey, fmtDate } from "../lib/utils.js";
 import { levelInfo, RANKS, courseName } from "../lib/queries.js";
 import { BADGES, UNLOCKS, UNLOCK_NAMES, isUnlocked, unlockLevel, plantEmoji } from "../lib/rewards.js";
@@ -216,7 +216,12 @@ export async function backupNow() {
   let doodles = [];
   try { doodles = await doodleAll(); } catch { /* ignore */ }
   update((s) => { s.profile.lastBackup = Date.now(); });
-  const payload = { app: "DialedIn", format: 1, exportedAt: new Date().toISOString(), state: S(), doodles };
+  // Flashcard pictures go in the backup too (as data URLs).
+  const images = [];
+  try {
+    for (const r of await imageAll()) images.push({ id: r.id, type: r.type, data: await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(r.blob); }) });
+  } catch { /* ignore */ }
+  const payload = { app: "DialedIn", format: 1, exportedAt: new Date().toISOString(), state: S(), doodles, images };
   download(`dialedin-backup-${todayKey()}.json`, JSON.stringify(payload));
   toast("Backup downloaded 💾 Keep it somewhere safe (Drive, iCloud, email to yourself).");
 }
@@ -230,6 +235,9 @@ async function restoreFrom(file) {
   if (!(await confirmDialog(`Restore this backup from ${new Date(data.exportedAt).toLocaleString()} (${n} sessions)? It replaces everything currently in Dialed In on this device.`, { okText: "Restore", danger: true, title: "Restore backup?" }))) return;
   replaceState(data.state);
   try { await doodleClear(); for (const d of data.doodles || []) await doodlePut(d); } catch { /* ignore */ }
+  try {
+    for (const im of data.images || []) await imagePut({ id: im.id, type: im.type, blob: await (await fetch(im.data)).blob(), createdAt: Date.now(), uploaded: false });
+  } catch { /* ignore */ }
   toast("Restored ✓ Welcome back!");
 }
 
@@ -259,7 +267,7 @@ async function wipeAll() {
       syncOff();
       await kvSet("state", defaultState());
       for (const k of await kvKeys()) if (String(k).startsWith("snap:")) await kvDel(k);
-      try { await doodleClear(); } catch { /* ignore */ }
+      try { await doodleClear(); await imageClear(); } catch { /* ignore */ }
       ["dialedin-timer", "dialedin-mix"].forEach((k) => localStorage.removeItem(k));
       location.reload();
     });

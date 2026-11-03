@@ -53,3 +53,21 @@ export async function decryptState(key, data) {
   const bytes = all[0] === 1 ? await gunzip(plain) : plain;
   return JSON.parse(new TextDecoder().decode(bytes));
 }
+
+// Pictures: already compressed, so no gzip. Plain layout: 1 byte type length | type | image bytes.
+export async function encryptBytes(key, bytes, type) {
+  const t = enc.encode(type || "image/jpeg");
+  const plain = new Uint8Array(1 + t.length + bytes.byteLength);
+  plain[0] = t.length; plain.set(t, 1); plain.set(new Uint8Array(bytes), 1 + t.length);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plain));
+  const out = new Uint8Array(1 + 12 + ct.length);
+  out[0] = 2; out.set(iv, 1); out.set(ct, 13);
+  return b64(out);
+}
+export async function decryptBytes(key, data) {
+  const all = unb64(data);
+  const plain = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(1, 13) }, key, all.slice(13)));
+  const tl = plain[0];
+  return { type: new TextDecoder().decode(plain.slice(1, 1 + tl)), bytes: plain.slice(1 + tl) };
+}

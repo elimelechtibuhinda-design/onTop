@@ -4,9 +4,15 @@
 //   GET    /v1/sync/:id                      -> 200 { version, data, updatedAt } | 404
 //   GET    /v1/sync/:id?meta=1               -> 200 { version } | 404
 //   PUT    /v1/sync/:id  { data, ifVersion } -> 200 { version } | 409 { version } (someone else wrote first)
-//   DELETE /v1/sync/:id                      -> 204
+//   DELETE /v1/sync/:id                      -> 204 (also deletes the group's pictures)
+//   GET    /v1/img/:id/:imgId                -> 200 { data } | 404
+//   PUT    /v1/img/:id/:imgId  { data }      -> 204 | 413 | 429 (too many pictures)
+//   DELETE /v1/img/:id/:imgId                -> 204
 const MAX_BYTES = 1_500_000;
 const ID_RE = /^[0-9a-f]{64}$/;
+const IMG_RE = /^[a-z0-9]{8,64}$/;
+const MAX_IMG_BYTES = 450_000;
+const MAX_IMGS_PER_GROUP = 600;
 
 function cors(origin, env) {
   const allowed = (env.ALLOWED_ORIGINS || "").split(",").map((s) => s.trim());
@@ -32,6 +38,8 @@ export default {
         status: 200, headers: { ...h, "Content-Type": "text/plain; charset=utf-8" },
       });
     }
+    const im = path.match(/^\/v1\/img\/([^/]+)\/([^/]+)$/);
+    if (im) return images(req, env, h, im[1], im[2]);
     const m = path.match(/^\/v1\/sync\/([^/]+)$/);
     if (!m) return json({ error: "not found" }, 404, h);
     const id = m[1];
@@ -65,9 +73,40 @@ export default {
     }
 
     if (req.method === "DELETE") {
-      await env.DB.prepare("DELETE FROM blobs WHERE id = ?").bind(id).run();
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM blobs WHERE id = ?").bind(id),
+        env.DB.prepare("DELETE FROM images WHERE group_id = ?").bind(id),
+      ]);
       return new Response(null, { status: 204, headers: h });
     }
     return json({ error: "method not allowed" }, 405, h);
   },
 };
+
+async function images(req, env, h, id, imgId) {
+  if (!ID_RE.test(id) || !IMG_RE.test(imgId)) return json({ error: "bad id" }, 400, h);
+  if (req.method === "GET") {
+    const row = await env.DB.prepare("SELECT data FROM images WHERE group_id = ? AND img_id = ?").bind(id, imgId).first();
+    return row ? json({ data: row.data }, 200, h) : json({ error: "no image" }, 404, h);
+  }
+  if (req.method === "PUT") {
+    // Pictures only belong to an existing sync group.
+    const group = await env.DB.prepare("SELECT 1 FROM blobs WHERE id = ?").bind(id).first();
+    if (!group) return json({ error: "no sync" }, 404, h);
+    const text = await req.text();
+    if (text.length > MAX_IMG_BYTES) return json({ error: "too large" }, 413, h);
+    let body;
+    try { body = JSON.parse(text); } catch { return json({ error: "bad json" }, 400, h); }
+    if (typeof body?.data !== "string") return json({ error: "bad body" }, 400, h);
+    const { n } = await env.DB.prepare("SELECT COUNT(*) AS n FROM images WHERE group_id = ?").bind(id).first();
+    if (n >= MAX_IMGS_PER_GROUP) return json({ error: "too many images" }, 429, h);
+    await env.DB.prepare("INSERT INTO images (group_id, img_id, data, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(group_id, img_id) DO UPDATE SET data = excluded.data")
+      .bind(id, imgId, body.data, Date.now()).run();
+    return new Response(null, { status: 204, headers: h });
+  }
+  if (req.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM images WHERE group_id = ? AND img_id = ?").bind(id, imgId).run();
+    return new Response(null, { status: 204, headers: h });
+  }
+  return json({ error: "method not allowed" }, 405, h);
+}

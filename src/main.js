@@ -27,6 +27,7 @@ import { syncGoals } from "./components/smart.js";
 import { checkBadges } from "./lib/rewards.js";
 import { countOpen } from "./lib/analytics.js";
 import { initSync } from "./lib/sync.js";
+import { unusedImageIds, removeImage } from "./lib/images.js";
 import { openJoinDialog } from "./components/sync-ui.js";
 import { syncInfo } from "./lib/sync.js";
 
@@ -167,6 +168,9 @@ async function boot() {
 
   subscribe(() => { applyPrefs(); redrawToppy(); syncGoals(); if (mainEl) scheduleRender(); });
   on("go", ({ view, ...opts }) => go(view, opts));
+  on("imagesArrived", () => scheduleRender());
+  // Tidy pictures no card uses any more (sync does this itself when it's on).
+  setTimeout(async () => { if (!syncInfo().on) for (const id of await unusedImageIds().catch(() => [])) removeImage(id); }, 5000);
   on("timerEnded", () => { syncGoals(); scheduleRender(); });
   setInterval(onMinute, 60000);
 }

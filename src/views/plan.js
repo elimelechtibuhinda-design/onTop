@@ -11,6 +11,8 @@ import { openDialog, confirmDialog, toast, courseOptions, emptyState } from "../
 import { openGoalBuilder, openGoalReview, progress, fmtCurrent, evaluate, SCOPES, hitRate, syncGoals } from "../components/smart.js";
 import { completeReview, gradeCard, REVIEW_INTERVALS } from "../lib/flash.js";
 import { taskRow, wireTaskRows } from "./today.js";
+import { faceHTML, hydrate, hasMath } from "../components/cardface.js";
+import { addImage, removeImage, imageURL, imageCount, MAX_IMAGES } from "../lib/images.js";
 
 export const TABS = [
   ["goals", "🎯 Goals"], ["week", "📅 Week"], ["tasks", "✅ Tasks"], ["calendar", "🗓️ Calendar"],
@@ -518,12 +520,19 @@ function coursePage(el, c, rerender) {
         <div class="card">
           <div class="card-head"><h3>🃏 Flashcards</h3><span class="pill ${due.length ? "gold" : ""}">${due.length} due</span></div>
           <form class="stack tight" data-addcard>
-            <input type="text" name="front" placeholder="Front (question)">
-            <input type="text" name="back" placeholder="Back (answer)">
+            ${["front", "back"].map((side) => `<div class="card-side" data-side="${side}">
+              <textarea name="${side}" rows="2" placeholder="${side === "front" ? "Front — question" : "Back — answer"}">${esc(ui.cardDraft?.[side] || "")}</textarea>
+              <div class="row side-tools">
+                <label class="btn sm ghost">📷 Picture<input type="file" accept="image/*" hidden data-file="${side}"></label>
+                <span data-thumb="${side}"></span>
+              </div>
+              <div class="cf-preview" data-preview="${side}" hidden></div>
+            </div>`).join("")}
+            <p class="tiny muted">Paste a screenshot (Ctrl/⌘+V), drop an image, or snap a photo. Type formulas between $ signs, e.g. <code>$\\bar{x} \\pm z\\frac{\\sigma}{\\sqrt{n}}$</code></p>
             <button class="btn sm primary">Add card</button>
           </form>
           <div class="row" style="margin-top:10px"><button class="btn sm" data-study ${cards.length ? "" : "disabled"}>Study ${due.length ? "due" : "all"} (${due.length || cards.length})</button></div>
-          <div style="max-height:220px;overflow:auto;margin-top:8px">${cards.map((f) => `<div class="list-row small"><span class="grow"><b>${esc(f.front)}</b> — ${esc(f.back)}</span><span class="tiny muted">box ${f.box || 0}</span><button class="icon-btn" data-delcard="${f.id}" aria-label="Delete card">✕</button></div>`).join("")}</div>
+          <div style="max-height:220px;overflow:auto;margin-top:8px">${cards.map((f) => `<div class="list-row small card-row"><span class="grow mini-face">${faceHTML(f.front, f.frontImg)}</span><span class="muted">→</span><span class="grow mini-face">${faceHTML(f.back, f.backImg)}</span><span class="tiny muted">box ${f.box || 0}</span><button class="icon-btn" data-delcard="${f.id}" aria-label="Delete card">✕</button></div>`).join("")}</div>
         </div>
         <div class="card">
           <div class="card-head"><h3>🔗 Links</h3></div>
@@ -540,6 +549,7 @@ function coursePage(el, c, rerender) {
   el.querySelector("[data-edit]").addEventListener("click", () => openCourseDialog(c));
   el.querySelector("[data-del]").addEventListener("click", async () => {
     if (!(await confirmDialog(`Delete ${c.name}? Its tasks, dates, flashcards, grades and reviews go too. Logged study time stays.`, { okText: "Delete course", danger: true }))) return;
+    for (const f of S().flashcards.filter((x) => x.courseId === c.id)) { removeImage(f.frontImg); removeImage(f.backImg); }
     update((s) => {
       s.courses = s.courses.filter((x) => x.id !== c.id);
       for (const k of ["tasks", "events", "flashcards", "grades", "reviews"]) s[k] = s[k].filter((x) => x.courseId !== c.id);
@@ -552,14 +562,13 @@ function coursePage(el, c, rerender) {
     let h;
     notes.addEventListener("input", () => { clearTimeout(h); h = setTimeout(() => update((s) => { s.courses.find((x) => x.id === c.id).notes = notes.value; }), 400); });
   }
-  el.querySelector("[data-addcard]").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const front = e.target.front.value.trim(), back = e.target.back.value.trim();
-    if (!front || !back) return toast("Fill in both sides.");
-    update((s) => s.flashcards.push({ id: uid(), courseId: c.id, front, back, box: 0, due: todayKey() }));
-    setTimeout(() => el.querySelector('[data-addcard] [name="front"]')?.focus(), 0);
-  });
-  el.querySelectorAll("[data-delcard]").forEach((b) => b.addEventListener("click", () => update((s) => { s.flashcards = s.flashcards.filter((f) => f.id !== b.dataset.delcard); })));
+  wireCardEditor(el.querySelector("[data-addcard]"), c);
+  el.querySelectorAll(".card-row").forEach((r) => hydrate(r));
+  el.querySelectorAll("[data-delcard]").forEach((b) => b.addEventListener("click", () => {
+    const card = S().flashcards.find((f) => f.id === b.dataset.delcard);
+    update((s) => { s.flashcards = s.flashcards.filter((f) => f.id !== b.dataset.delcard); });
+    removeImage(card?.frontImg); removeImage(card?.backImg);
+  }));
   el.querySelector("[data-study]").addEventListener("click", () => studyCards(due.length ? due : cards));
   el.querySelector("[data-addlink]").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -572,6 +581,60 @@ function coursePage(el, c, rerender) {
   })));
 }
 
+// Card editor: text + optional picture per side. The draft survives re-renders (e.g. a sync arriving).
+function wireCardEditor(form, course) {
+  ui.cardDraft ||= { front: "", back: "", frontImg: null, backImg: null };
+  const d = ui.cardDraft;
+  const thumbs = async () => {
+    for (const side of ["front", "back"]) {
+      const box = form.querySelector(`[data-thumb="${side}"]`);
+      const id = d[side + "Img"];
+      box.innerHTML = id ? `<span class="thumb"><img alt="" src="${(await imageURL(id)) || ""}"><button type="button" class="icon-btn" data-rmimg="${side}" aria-label="Remove picture">✕</button></span>` : "";
+      box.querySelector("[data-rmimg]")?.addEventListener("click", () => { removeImage(d[side + "Img"]); d[side + "Img"] = null; thumbs(); });
+    }
+  };
+  const preview = (side) => {
+    const ta = form.querySelector(`textarea[name="${side}"]`), pv = form.querySelector(`[data-preview="${side}"]`);
+    d[side] = ta.value;
+    pv.hidden = !hasMath(ta.value);
+    if (!pv.hidden) { pv.innerHTML = faceHTML(ta.value, null); hydrate(pv); }
+  };
+  const attach = async (side, file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    if (imageCount() >= MAX_IMAGES) return toast(`You've reached ${MAX_IMAGES} pictures. Delete some old cards to add more.`);
+    try {
+      if (d[side + "Img"]) removeImage(d[side + "Img"]);
+      d[side + "Img"] = await addImage(file);
+      thumbs();
+    } catch { toast("Couldn't use that picture — try a PNG or JPG."); }
+  };
+  ["front", "back"].forEach((side) => {
+    const ta = form.querySelector(`textarea[name="${side}"]`);
+    ta.addEventListener("input", () => preview(side));
+    preview(side);
+    form.querySelector(`[data-file="${side}"]`).addEventListener("change", (e) => { attach(side, e.target.files[0]); e.target.value = ""; });
+    const zone = form.querySelector(`[data-side="${side}"]`);
+    zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drop"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("drop"));
+    zone.addEventListener("drop", (e) => { e.preventDefault(); zone.classList.remove("drop"); attach(side, e.dataTransfer.files[0]); });
+  });
+  form.addEventListener("paste", (e) => {
+    const file = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith("image/"));
+    if (!file) return;
+    e.preventDefault();
+    attach(e.target.name === "back" ? "back" : "front", file);
+  });
+  thumbs();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const front = form.front.value.trim(), back = form.back.value.trim();
+    if (!(front || d.frontImg) || !(back || d.backImg)) return toast("Each side needs text or a picture.");
+    update((st) => st.flashcards.push({ id: uid(), courseId: course.id, front, back, frontImg: d.frontImg, backImg: d.backImg, box: 0, due: todayKey() }));
+    ui.cardDraft = null;
+    setTimeout(() => document.querySelector('[data-addcard] [name="front"]')?.focus(), 0);
+  });
+}
+
 function studyCards(list) {
   let i = 0, flipped = false;
   const deck = list.slice();
@@ -581,9 +644,10 @@ function studyCards(list) {
       if (i >= deck.length) { box.innerHTML = `<div class="center stack"><div style="font-size:3rem">🎉</div><h3>Deck done!</h3></div>`; return; }
       const c = deck[i];
       box.innerHTML = `<p class="center small muted">${i + 1} / ${deck.length}</p>
-        <div class="flashcard ${flipped ? "flipped" : ""}" data-card tabindex="0" role="button" aria-label="Flip card"><div class="inner"><div class="face">${esc(c.front)}</div><div class="face back">${esc(c.back)}</div></div></div>
+        <div class="flashcard ${flipped ? "flipped" : ""}" data-card tabindex="0" role="button" aria-label="Flip card"><div class="inner"><div class="face">${faceHTML(c.front, c.frontImg)}</div><div class="face back">${faceHTML(c.back, c.backImg)}</div></div></div>
         <div class="row" style="justify-content:center;margin-top:14px">${flipped ? `<button class="btn" data-no>↺ Again</button><button class="btn primary" data-yes>✓ Got it</button>` : `<span class="small muted">Tap to flip</span>`}</div>`;
       const card = box.querySelector("[data-card]");
+      hydrate(card);
       card.addEventListener("click", () => { flipped = !flipped; draw(); });
       card.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flipped = !flipped; draw(); } });
       box.querySelector("[data-yes]")?.addEventListener("click", () => { gradeCard(c.id, true); i++; flipped = false; draw(); });

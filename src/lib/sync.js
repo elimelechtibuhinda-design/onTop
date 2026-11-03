@@ -3,7 +3,9 @@
 import { S, store, replaceState, subscribe } from "./store.js";
 import { kvGet, kvSet, kvDel } from "./db.js";
 import { emit } from "./bus.js";
-import { newCode, normalizeCode, deriveKeys, encryptState, decryptState } from "./sync-crypto.js";
+import { newCode, normalizeCode, deriveKeys, encryptState, decryptState, encryptBytes, decryptBytes } from "./sync-crypto.js";
+import { imageAll, imagePut, imageDelete } from "./db.js";
+import { referencedImageIds } from "./images.js";
 import { mergeStates, syncable } from "./sync-merge.js";
 
 const SERVER = import.meta.env.VITE_SYNC_URL || "https://sync.imdialedin.app";
@@ -64,7 +66,7 @@ export async function syncNow() {
       let push = null, ifVersion = remoteVersion;
       if (remoteVersion !== 0 && remoteVersion === cfg.version) {
         // Nobody else changed anything; upload only if this device did.
-        if (base && sameData(local, base)) { cfg.lastSyncAt = Date.now(); cfg.error = null; saveCfg(); return; }
+        if (base && sameData(local, base)) { cfg.lastSyncAt = Date.now(); cfg.error = null; saveCfg(); await syncImages(); return; }
         push = local;
       } else if (remoteVersion === 0) {
         push = local;                                   // first device: create the cloud copy
@@ -80,6 +82,7 @@ export async function syncNow() {
           cfg.version = j.version;
           await kvSet(BASE_KEY, syncable(merged));
           cfg.lastSyncAt = Date.now(); cfg.error = null; saveCfg();
+          await syncImages();
           return;
         }
         push = merged; ifVersion = j.version;
@@ -92,6 +95,7 @@ export async function syncNow() {
       cfg.version = (await put.json()).version;
       await kvSet(BASE_KEY, syncable(push));
       cfg.lastSyncAt = Date.now(); cfg.error = null; saveCfg();
+      await syncImages();
       return;
     }
     throw new Error("busy");
@@ -106,6 +110,38 @@ export async function syncNow() {
     emit("sync");
     if (again) { again = false; schedule(1500); }
   }
+}
+
+// Pictures travel separately from the main data: upload new ones, fetch missing ones, drop deleted ones.
+async function syncImages() {
+  try {
+    const { id, key } = await k();
+    const wanted = new Set(referencedImageIds());
+    const have = await imageAll();
+    const haveIds = new Set(have.map((r) => r.id));
+    let arrived = 0;
+    for (const rec of have) {
+      if (wanted.has(rec.id) && !rec.uploaded) {
+        const data = await encryptBytes(key, await rec.blob.arrayBuffer(), rec.type);
+        const res = await fetch(`${SERVER}/v1/img/${id}/${rec.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }) });
+        if (res.status === 204) await imagePut({ ...rec, uploaded: true });
+      } else if (!wanted.has(rec.id) && (rec.uploaded || Date.now() - (rec.createdAt || 0) > 3600000)) {
+        // (a recent picture that was never uploaded may belong to a card still being written — leave it)
+        // No card uses it any more (card deleted here or on another device).
+        if (rec.uploaded) await fetch(`${SERVER}/v1/img/${id}/${rec.id}`, { method: "DELETE" }).catch(() => {});
+        await imageDelete(rec.id);
+      }
+    }
+    for (const imgId of wanted) {
+      if (haveIds.has(imgId)) continue;
+      const res = await fetch(`${SERVER}/v1/img/${id}/${imgId}`, { cache: "no-store" });
+      if (!res.ok) continue;
+      const { type, bytes } = await decryptBytes(key, (await res.json()).data);
+      await imagePut({ id: imgId, blob: new Blob([bytes], { type }), type, createdAt: Date.now(), uploaded: true });
+      arrived++;
+    }
+    if (arrived) emit("imagesArrived");
+  } catch (e) { console.warn("picture sync failed", e); }
 }
 
 export function schedule(ms = 4000) {

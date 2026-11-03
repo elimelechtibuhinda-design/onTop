@@ -2,7 +2,7 @@
 
 const DB_NAME = "dialedin";
 const OLD_DB_NAME = "ontop";   // the app was called onTop before
-const DB_VERSION = 1;
+const DB_VERSION = 2;   // v2 adds the "images" store for flashcard pictures
 let dbPromise = null;
 
 function open() {
@@ -13,6 +13,7 @@ function open() {
       const db = req.result;
       if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
       if (!db.objectStoreNames.contains("doodles")) db.createObjectStore("doodles", { keyPath: "id" });
+      if (!db.objectStoreNames.contains("images")) db.createObjectStore("images", { keyPath: "id" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -61,6 +62,14 @@ export async function migrateOldDb() {
   indexedDB.deleteDatabase(OLD_DB_NAME);
   return true;
 }
+
+// Flashcard images: { id, blob, type, w, h, createdAt, uploaded }
+export const imageGet = (id) => tx("images", "readonly", (s) => s.get(id));
+export const imagePut = (rec) => tx("images", "readwrite", (s) => s.put(rec));
+export const imageDelete = (id) => tx("images", "readwrite", (s) => s.delete(id));
+export const imageKeys = () => tx("images", "readonly", (s) => s.getAllKeys());
+export const imageAll = () => tx("images", "readonly", (s) => s.getAll());
+export const imageClear = () => tx("images", "readwrite", (s) => s.clear());
 
 export const doodleAll = () => tx("doodles", "readonly", (s) => s.getAll());
 export const doodlePut = (d) => tx("doodles", "readwrite", (s) => s.put(d));
