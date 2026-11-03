@@ -66,10 +66,9 @@ function msg(t) { if (pipOpen()) win.document.querySelector("[data-msg]").textCo
 export function showButtons(paused = false) {
   if (!pipOpen()) return;
   area().innerHTML = paused
-    ? `<div class="row"><button class="gold" data-pause>▶ I'm back</button><button data-back title="Back to Dialed In">↩</button></div>`
-    : `<div class="row"><button data-pause>⏸ Pause</button><button data-back title="Back to Dialed In">↩</button></div>`;
+    ? `<div class="row"><button class="gold" data-pause>▶ I'm back</button></div>`
+    : `<div class="row"><button data-pause>⏸ Pause</button></div>`;
   area().querySelector("[data-pause]").addEventListener("click", () => handlers.onPause?.());
-  area().querySelector("[data-back]").addEventListener("click", () => { window.focus(); handlers.onBack?.(); });
 }
 
 export const REASONS = [["phone", "📱 Phone"], ["chat", "💬 Chat"], ["social", "📲 Social"], ["noise", "🔊 Noise"], ["tired", "😴 Tired"], ["other", "🤔 Other"]];

@@ -4,7 +4,7 @@ import { esc, todayKey, addDays, weekStartKey, fmtHM, fmtDate, fmtTime, parseKey
 import { secOn, secInRange, courseName, courseColor, streakInfo, upcomingEvents, weekDays, levelInfo } from "../lib/queries.js";
 import { confirmDialog, openDialog, toast } from "../components/ui.js";
 
-const ui = { range: "week", logLimit: 30 };
+const ui = { range: "week", logLimit: 30, chart: "days", weekOffset: 0 };
 export function setStatsOpts(o) { Object.assign(ui, o); }
 
 export function renderStats(el) {
@@ -25,18 +25,17 @@ export function renderStats(el) {
         <p class="small ${weekTotal >= lastWeekTotal ? "" : "muted"}">${lastWeekTotal ? (weekTotal >= lastWeekTotal ? "▲ " : "▼ ") + fmtHM(Math.abs(weekTotal - lastWeekTotal)) + " vs last week" : "First week — nice start!"}</p></div>
       <div class="card"><span class="label">All time</span><div class="big-num">${fmtHM(allTotal)}</div><p class="small muted">${st.sessions.length} sessions</p></div>
       <div class="card"><span class="label">Streak · best day</span><div class="big-num">🔥 ${streak}</div><p class="small muted">Best day: ${fmtHM(st.records.bestDaySec)}</p></div>
+      ${distractedTile()}
     </div>
     ${balanceWarning()}
-    <div class="grid-2 section">
-      <div class="card"><div class="card-head"><h3>This week</h3><span class="small muted">goal line = ${fmtHM(st.profile.dailyGoalMin * 60)}/day</span></div>${weekChart()}</div>
-      <div class="card"><div class="card-head"><h3>By course</h3>
-        <div class="chips">${["week", "month", "all"].map((r) => `<button class="chip ${ui.range === r ? "active" : ""}" data-range="${r}">${r === "all" ? "All time" : "This " + r}</button>`).join("")}</div></div>
-        ${courseSplit()}</div>
-    </div>
+    <div class="card section" data-activity>${activityCard()}</div>
+    <div class="card section">${focusQuality()}</div>
+    <div class="card section"><div class="card-head"><h3>By course</h3>
+      <div class="chips">${["week", "month", "all"].map((r) => `<button class="chip ${ui.range === r ? "active" : ""}" data-range="${r}">${r === "all" ? "All time" : "This " + r}</button>`).join("")}</div></div>
+      ${courseSplit()}</div>
     <div class="card section"><div class="card-head"><h3>Your study year</h3>
       <div class="heat-legend">Less ${HEAT.map((c) => `<i style="background:${c}"></i>`).join("")} More</div></div>
       <div class="heatmap">${heatmap()}</div></div>
-    <div class="card section">${focusQuality()}</div>
     <div class="grid-2 section">
       <div class="card">${bestFocus()}</div>
       <div class="card"><div class="card-head"><h3>📬 Weekly recap</h3></div>
@@ -45,6 +44,7 @@ export function renderStats(el) {
     </div>
     <div class="card section"><div class="card-head"><h3>Session log</h3></div>${sessionLog()}</div>`;
 
+  wireActivity(el.querySelector("[data-activity]"));
   el.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => { ui.range = b.dataset.range; renderStats(el); }));
   el.querySelector("[data-recap]").addEventListener("click", () => openRecap(weekStartKey()));
   el.querySelector("[data-recaplast]").addEventListener("click", () => openRecap(addDays(weekStartKey(), -7)));
@@ -55,23 +55,123 @@ export function renderStats(el) {
   if (ui.recap) { const w = ui.recap; ui.recap = null; setTimeout(() => openRecap(w), 50); }
 }
 
-function weekChart() {
-  const days = weekDays();
-  const vals = days.map((d) => secOn(d) / 60);
-  const goal = S().profile.dailyGoalMin;
-  const max = Math.max(goal * 1.15, ...vals, 30);
-  const W = 340, H = 170, pb = 24, pt = 18, bw = 30, gap = (W - 7 * bw) / 8;
-  const y = (v) => H - pb - (v / max) * (H - pb - pt);
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Minutes studied each day this week">
-    <line x1="0" x2="${W}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--gold)" stroke-dasharray="4 4" stroke-width="1.5"/>
-    ${days.map((d, i) => {
-      const x = gap + i * (bw + gap), v = vals[i];
-      const isToday = d === todayKey();
-      return `<rect x="${x}" y="${y(v)}" width="${bw}" height="${Math.max(2, H - pb - y(v))}" rx="6" fill="${v >= goal ? "var(--gold)" : "var(--accent)"}" opacity="${v ? 1 : .25}"><title>${fmtDate(d)}: ${Math.round(v)} min</title></rect>
-        ${v ? `<text class="v" x="${x + bw / 2}" y="${y(v) - 5}" text-anchor="middle">${v >= 60 ? Math.round(v / 6) / 10 + "h" : Math.round(v) + "m"}</text>` : ""}
-        <text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle" ${isToday ? 'style="font-weight:800;fill:var(--ink)"' : ""}>${parseKey(d).toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2)}</text>`;
+/* ---------- focused vs distracted, by day or by week ---------- */
+const distOf = (s) => (s.pausedSec || 0) + (s.distractedSec || 0);
+function totalsBetween(fromKey, toKey) {
+  let focus = 0, dist = 0;
+  for (const s of S().sessions) if (s.dateKey >= fromKey && s.dateKey <= toKey) { focus += s.durationSec; dist += distOf(s); }
+  return { focus, dist };
+}
+const pct = (dist, focus) => (focus + dist ? Math.round((dist / (focus + dist)) * 100) : 0);
+const shortDur = (sec) => (sec < 60 ? (sec ? Math.round(sec) + "s" : "0m") : fmtHM(sec));
+
+function distractedTile() {
+  const wk = weekStartKey(), today = todayKey();
+  const now = totalsBetween(wk, today);
+  const last = totalsBetween(addDays(wk, -7), addDays(wk, -1));
+  const t = totalsBetween(today, today);
+  const delta = now.dist - last.dist;
+  const deltaTxt = last.dist || last.focus
+    ? `<span style="color:${delta <= 0 ? "var(--ok)" : "var(--danger)"}">${delta <= 0 ? "▼" : "▲"} ${shortDur(Math.abs(delta))}</span> vs last week`
+    : "";
+  return `<div class="card"><span class="label">Distracted this week</span><div class="big-num">${shortDur(now.dist)}</div>
+    <p class="small muted">${pct(now.dist, now.focus)}% of your study time · today ${shortDur(t.dist)}${deltaTxt ? "<br>" + deltaTxt : ""}</p></div>`;
+}
+
+function buckets() {
+  if (ui.chart === "weeks") {
+    return Array.from({ length: 8 }, (_, i) => {
+      const from = addDays(weekStartKey(), -7 * (7 - i)), to = addDays(from, 6);
+      return { from, to, label: fmtDate(from, { month: "short", day: "numeric" }), long: `Week of ${fmtDate(from, { month: "short", day: "numeric" })}`, current: i === 7, ...totalsBetween(from, to) };
+    });
+  }
+  const start = addDays(weekStartKey(), ui.weekOffset * 7);
+  return weekDays(start).map((d) => ({
+    from: d, to: d, label: parseKey(d).toLocaleDateString(undefined, { weekday: "short" }), long: fmtDate(d, { weekday: "long", month: "short", day: "numeric" }),
+    current: d === todayKey(), ...totalsBetween(d, d),
+  }));
+}
+
+function activityCard() {
+  const b = buckets();
+  const sum = b.reduce((a, x) => ({ focus: a.focus + x.focus, dist: a.dist + x.dist }), { focus: 0, dist: 0 });
+  const start = addDays(weekStartKey(), ui.weekOffset * 7);
+  const title = ui.chart === "weeks" ? "Last 8 weeks"
+    : ui.weekOffset === 0 ? "This week" : `${fmtDate(start, { month: "short", day: "numeric" })} – ${fmtDate(addDays(start, 6), { month: "short", day: "numeric" })}`;
+  return `
+    <div class="card-head" style="flex-wrap:wrap">
+      <h3>Focused vs distracted · ${esc(title)}</h3>
+      <div class="row">
+        ${ui.chart === "days" ? `<button class="icon-btn" data-wk="-1" aria-label="Previous week">←</button><button class="icon-btn" data-wk="1" aria-label="Next week" ${ui.weekOffset >= 0 ? "disabled" : ""}>→</button>` : ""}
+        <div class="chips" role="tablist">${[["days", "Days"], ["weeks", "Weeks"]].map(([v, l]) => `<button class="chip ${ui.chart === v ? "active" : ""}" role="tab" aria-selected="${ui.chart === v}" data-chart="${v}">${l}</button>`).join("")}</div>
+      </div>
+    </div>
+    <div class="legend" aria-hidden="true"><span><i style="background:var(--series-focus)"></i>Focused</span><span><i style="background:var(--series-distract)"></i>Distracted (paused)</span>${ui.chart === "days" ? `<span><i class="goal-key"></i>Daily goal</span>` : ""}</div>
+    <div class="chart-wrap">${activitySvg(b)}<div class="chart-tip" hidden></div></div>
+    <p class="small muted" style="margin-top:6px">${fmtHM(sum.focus)} focused · <b style="color:var(--ink)">${shortDur(sum.dist)} distracted</b> (${pct(sum.dist, sum.focus)}% of study time)</p>
+    <details class="small" style="margin-top:6px"><summary>Show as table</summary>
+      <table class="data-table"><thead><tr><th>${ui.chart === "weeks" ? "Week" : "Day"}</th><th>Focused</th><th>Distracted</th><th>%</th></tr></thead>
+      <tbody>${b.map((x) => `<tr><td>${esc(x.long)}</td><td>${fmtHM(x.focus)}</td><td>${shortDur(x.dist)}</td><td>${pct(x.dist, x.focus)}%</td></tr>`).join("")}</tbody></table>
+    </details>`;
+}
+
+// Rounded-top column, square at the baseline (4px data-end radius).
+function col(x, yTop, w, base, fill) {
+  const h = base - yTop;
+  if (h <= 0.5) return "";
+  const r = Math.min(4, w / 2, h);
+  return `<path d="M${x},${base} V${yTop + r} Q${x},${yTop} ${x + r},${yTop} H${x + w - r} Q${x + w},${yTop} ${x + w},${yTop + r} V${base} Z" fill="${fill}"/>`;
+}
+
+function activitySvg(b) {
+  const W = 680, H = 230, L = 40, R = 8, T = 16, B = 30;
+  const goalMin = S().profile.dailyGoalMin;
+  const maxMin = Math.max(...b.map((x) => Math.max(x.focus, x.dist) / 60), ui.chart === "days" ? goalMin : 0, 30);
+  const step = maxMin <= 60 ? 15 : maxMin <= 180 ? 30 : maxMin <= 480 ? 60 : maxMin <= 1200 ? 120 : 300;
+  const top = Math.ceil(maxMin / step) * step;
+  const y = (min) => T + (H - T - B) * (1 - min / top);
+  const base = y(0);
+  const band = (W - L - R) / b.length;
+  const w = Math.min(22, (band - 14) / 2);
+  const ticks = [];
+  for (let v = 0; v <= top; v += step) ticks.push(v);
+  const tickLabel = (m) => (m === 0 ? "0" : m % 60 === 0 ? `${m / 60}h` : m >= 60 ? `${Math.floor(m / 60)}h${m % 60}` : `${m}m`);
+  // one selective label: the biggest focused value
+  const best = b.reduce((bi, x, i) => (x.focus > b[bi].focus ? i : bi), 0);
+  return `<svg class="chart activity" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Focused and distracted time per ${ui.chart === "weeks" ? "week" : "day"}">
+    ${ticks.map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${tickLabel(v)}</text>`).join("")}
+    ${ui.chart === "days" ? `<line x1="${L}" x2="${W - R}" y1="${y(goalMin)}" y2="${y(goalMin)}" stroke="var(--ink-soft)" stroke-width="1"/>` : ""}
+    ${b.map((x, i) => {
+      const cx = L + band * i + band / 2;
+      const fx = cx - w - 1, dx = cx + 1;   // 2px surface gap between the pair
+      return `${col(fx, y(x.focus / 60), w, base, "var(--series-focus)")}${col(dx, y(x.dist / 60), w, base, "var(--series-distract)")}
+        ${i === best && x.focus ? `<text class="v" x="${cx - w / 2 - 1}" y="${y(x.focus / 60) - 6}" text-anchor="middle">${shortDur(x.focus)}</text>` : ""}
+        <text x="${cx}" y="${H - 10}" text-anchor="middle" ${x.current ? 'style="font-weight:800;fill:var(--ink)"' : ""}>${esc(x.label)}</text>
+        <rect class="hit" data-i="${i}" x="${L + band * i}" y="${T}" width="${band}" height="${H - T - B}" fill="transparent"/>`;
     }).join("")}
   </svg>`;
+}
+
+function wireActivity(card) {
+  const rerender = () => { card.innerHTML = activityCard(); wireActivity(card); };
+  card.querySelectorAll("[data-chart]").forEach((c) => c.addEventListener("click", () => { ui.chart = c.dataset.chart; rerender(); }));
+  card.querySelectorAll("[data-wk]").forEach((c) => c.addEventListener("click", () => { ui.weekOffset = Math.min(0, ui.weekOffset + +c.dataset.wk); rerender(); }));
+  const b = buckets();
+  const tip = card.querySelector(".chart-tip"), wrap = card.querySelector(".chart-wrap");
+  const show = (e, i) => {
+    const x = b[i];
+    tip.innerHTML = `<b>${esc(x.long)}</b><div><i style="background:var(--series-focus)"></i>Focused ${fmtHM(x.focus)}</div><div><i style="background:var(--series-distract)"></i>Distracted ${shortDur(x.dist)} <span class="muted">(${pct(x.dist, x.focus)}%)</span></div>`;
+    tip.hidden = false;
+    const r = wrap.getBoundingClientRect();
+    const left = Math.min(Math.max(0, e.clientX - r.left + 12), r.width - tip.offsetWidth);
+    tip.style.left = left + "px";
+    tip.style.top = Math.max(0, e.clientY - r.top - tip.offsetHeight - 10) + "px";
+  };
+  card.querySelectorAll(".hit").forEach((h) => {
+    h.addEventListener("pointermove", (e) => show(e, +h.dataset.i));
+    h.addEventListener("pointerdown", (e) => show(e, +h.dataset.i));
+    h.addEventListener("pointerleave", () => { tip.hidden = true; });
+  });
 }
 
 function courseSplit() {

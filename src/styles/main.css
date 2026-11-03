@@ -557,3 +557,20 @@ dialog::backdrop { background: rgba(0, 20, 45, .55); backdrop-filter: blur(3px);
   background: var(--rail-bg); color: #fff; padding: 8px 8px 8px 16px; border-radius: 14px; box-shadow: var(--shadow); font-weight: 600; }
 .update-banner .icon-btn { color: #c9d8ea; }
 details summary { cursor: pointer; }
+
+/* focused vs distracted chart — colours validated for contrast & colour-blind separation */
+:root, [data-theme="classic"], [data-theme="library"], [data-theme="matcha"], [data-theme="sunset"] { --series-focus: #0055B7; --series-distract: #B87700; }
+[data-theme="midnight"], [data-theme="nightsky"] { --series-focus: #2E9FD6; --series-distract: #C08400; }
+[data-contrast="high"] { --series-focus: #0055B7; --series-distract: #B87700; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .8rem; color: var(--ink-soft); margin-bottom: 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.legend i.goal-key { width: 14px; height: 0; border-top: 1px solid var(--ink-soft); border-radius: 0; }
+.chart-wrap { position: relative; }
+.chart-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: 10px; padding: 8px 10px; font-size: .8rem; box-shadow: var(--shadow); white-space: nowrap; }
+.chart-tip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+.chart.activity .hit { cursor: pointer; }
+.data-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.data-table th, .data-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); }
+.icon-btn:disabled { opacity: .3; cursor: default; background: none; }
