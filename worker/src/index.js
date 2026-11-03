@@ -25,7 +25,14 @@ export default {
   async fetch(req, env) {
     const h = cors(req.headers.get("Origin") || "", env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
-    const m = new URL(req.url).pathname.match(/^\/v1\/sync\/([^/]+)$/);
+    const path = new URL(req.url).pathname;
+    // A friendly status page, so opening the address in a browser doesn't look broken.
+    if (path === "/" && req.method === "GET") {
+      return new Response("✅ Dialed In sync server is running.\n\nThis address is used by the app (imdialedin.app) to sync encrypted study data between devices. There's nothing to see here.\n", {
+        status: 200, headers: { ...h, "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+    const m = path.match(/^\/v1\/sync\/([^/]+)$/);
     if (!m) return json({ error: "not found" }, 404, h);
     const id = m[1];
     if (!ID_RE.test(id)) return json({ error: "bad id" }, 400, h);
