@@ -20,7 +20,7 @@ export const MODES = {
   stopwatch: { name: "Free timer", desc: "Count up, stop when you want", focus: 0, brk: 5, long: 5 },
 };
 
-const KEY = "ontop-timer";
+const KEY = "dialedin-timer";
 let T = load();                 // live timer state (persisted to localStorage)
 let root = null;                // overlay element
 let tickHandle = null;
@@ -161,7 +161,7 @@ function endAll() {
   T = { active: false };
   persist();
   duck(false);
-  document.title = "onTop";
+  document.title = "Dialed In";
   closeOverlay();
   emit("timerEnded");
 }
@@ -204,7 +204,7 @@ function tick() {
   const rem = remaining();
   const el = elapsed();
   const display = T.phaseDurSec ? (rem >= 0 ? fmtHMS(rem) : "+" + fmtHMS(-rem)) : fmtHMS(el);
-  document.title = `${display} · ${T.phase === "focus" ? "Focus" : "Break"} · onTop`;
+  document.title = `${display} · ${T.phase === "focus" ? "Focus" : "Break"} · Dialed In`;
   if (root && !minimized) {
     const c = root.querySelector(".clock");
     if (c) { c.textContent = display; c.classList.toggle("over", rem !== null && rem < 0); }
@@ -252,7 +252,7 @@ function onVisibility() {
   if (awaySec < 30 || T.checkinOpen) return;
   openDialog(`
     <h2>Still focused? 👀</h2>
-    <p>You left onTop for <b>${fmtHM(awaySec)}</b> during focus time.</p>
+    <p>You left Dialed In for <b>${fmtHM(awaySec)}</b> during focus time.</p>
     <p class="small muted">No judgement — if you were reading notes in another tab, that counts!</p>
     <div class="dlg-actions">
       <button class="btn" data-dist>Count it as distracted</button>
@@ -295,8 +295,8 @@ async function sendPing() {
   if (!document.hidden) { pingInApp("Quick check: still on task? 🎯"); return; }
   const reg = await navigator.serviceWorker?.getRegistration?.();
   if (reg && "Notification" in window && Notification.permission === "granted") {
-    reg.showNotification("onTop 🎯 Still on task?", {
-      body: `${courseName(T.courseId)} · tap a button to answer`, tag: "ontop-ping", renotify: true,
+    reg.showNotification("Dialed In 🎯 Still on task?", {
+      body: `${courseName(T.courseId)} · tap a button to answer`, tag: "dialedin-ping", renotify: true,
       icon: "./icon-192.png", badge: "./icon-192.png",
       actions: [{ action: "yes", title: "✅ Yes" }, { action: "no", title: "😵 I drifted" }],
     });
@@ -315,7 +315,7 @@ function pingInApp(text) {
   });
 }
 function onPingMessage(e) {
-  if (e.data?.type !== "ontop-ping" || !T.active) return;
+  if (e.data?.type !== "dialedin-ping" || !T.active) return;
   if (e.data.answer === "yes") answerPing(true);
   else if (e.data.answer === "no") { answerPing(false); }
   else pingInApp("Quick check: still on task? 🎯");
@@ -362,7 +362,7 @@ async function popOut() {
     onBack: () => { minimized = false; openOverlay(); },
     onClose: () => {},
   });
-  if (!ok) { toast("Your browser blocked the pop-out. Allow pop-ups for onTop and try again."); return; }
+  if (!ok) { toast("Your browser blocked the pop-out. Allow pop-ups for Dialed In and try again."); return; }
   tick();
   toast("Mini timer popped out — keep it beside your work 🪟");
 }
@@ -542,7 +542,7 @@ function render(draft) {
       ${isFocus ? `<div data-reasonbox></div>
         <div class="small" style="color:#a9bdd6" data-fstats>${focusStatsLine()}</div>
         <div class="tiny" style="color:#a9bdd6;max-width:520px">${T.where === "here"
-          ? "📱 Studying right here — leaving onTop counts as a possible distraction."
+          ? "📱 Studying right here — leaving Dialed In counts as a possible distraction."
           : "💻 Working in other tabs/apps is fine."} Got distracted? Hit <b>Pause</b> — the distraction timer runs until you're back. Pop out the mini timer to keep it beside your work.</div>` : ""}
       ${!isFocus && !T.breakOver ? `
         <p class="muted" style="color:#cfe7da">Stand up · drink water 💧 · look outside. Or play something — games lock when the break ends.</p>
@@ -641,8 +641,8 @@ function renderSetup(draft) {
       <div class="panel stack">
         <div class="field"><span>Where will you be working?</span>
           <div class="mode-cards">
-            <button class="mode-card ${draft.where === "elsewhere" ? "active" : ""}" data-where="elsewhere"><b>💻 Other tabs & apps</b><span>Canvas, PDFs, Docs, an IDE… Leaving onTop is fine.</span></button>
-            <button class="mode-card ${draft.where === "here" ? "active" : ""}" data-where="here"><b>📱 Right here / phone</b><span>Leaving onTop counts as a possible distraction.</span></button>
+            <button class="mode-card ${draft.where === "elsewhere" ? "active" : ""}" data-where="elsewhere"><b>💻 Other tabs & apps</b><span>Canvas, PDFs, Docs, an IDE… Leaving Dialed In is fine.</span></button>
+            <button class="mode-card ${draft.where === "here" ? "active" : ""}" data-where="here"><b>📱 Right here / phone</b><span>Leaving Dialed In counts as a possible distraction.</span></button>
           </div></div>
         <label class="check small"><input type="checkbox" data-pings ${p.focusPings !== false ? "checked" : ""}> 🎯 Focus pings — a quick “still on task?” every 10–20 min</label>
         ${p.focusPings !== false && draft.where === "elsewhere" && "Notification" in window && Notification.permission !== "granted"

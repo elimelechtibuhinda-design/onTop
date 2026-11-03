@@ -184,7 +184,7 @@ function celebrate(text, big) {
 
 export async function systemNotify(text) {
   if (!S().profile.notifications || !("Notification" in window) || Notification.permission !== "granted") return;
-  const opts = { body: text, icon: "./icon-192.png", badge: "./icon-192.png", tag: "ontop-toppy" };
+  const opts = { body: text, icon: "./icon-192.png", badge: "./icon-192.png", tag: "dialedin-toppy" };
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (reg) return reg.showNotification("Toppy 🦉", opts);

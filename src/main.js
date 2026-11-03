@@ -1,4 +1,5 @@
-// onTop entry: loads state, applies preferences, renders the shell + router, mounts Toppy and the focus timer.
+// Dialed In entry: loads state, applies preferences, renders the shell + router, mounts Toppy and the focus timer.
+import "./lib/rename-migrate.js";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
@@ -10,7 +11,7 @@ import "@fontsource/atkinson-hyperlegible/700.css";
 import "./styles/main.css";
 
 import { registerSW } from "virtual:pwa-register";
-import { S, loadState, subscribe, update } from "./lib/store.js";
+import { S, store, loadState, subscribe, update, replaceState } from "./lib/store.js";
 import { requestPersistence } from "./lib/db.js";
 import { on } from "./lib/bus.js";
 import { todayKey } from "./lib/utils.js";
@@ -34,7 +35,7 @@ const VIEWS = {
 };
 
 const app = document.getElementById("app");
-let current = localStorage.getItem("ontop-view") || "today";
+let current = localStorage.getItem("dialedin-view") || "today";
 if (!VIEWS[current]) current = "today";
 let mainEl = null;
 let pendingRender = false;
@@ -52,7 +53,7 @@ function shell() {
   app.innerHTML = `
     <div class="app">
       <nav class="rail" aria-label="Main">
-        <div class="brand"><img src="./icon.svg" alt=""><b>on<span>Top</span></b></div>
+        <div class="brand"><img src="./icon.svg" alt=""><b>Dialed<span> In</span></b></div>
         ${Object.entries(VIEWS).map(([id, v]) => `<button class="nav-btn" data-view="${id}"><span class="ico" aria-hidden="true">${v.icon}</span>${v.label}</button>`).join("")}
         <button class="nav-btn" data-focus style="margin-top:14px;background:var(--gold);color:#1a1300"><span class="ico">▶</span>Start focus</button>
         <div class="rail-foot">Your study data stays on this device 🔒</div>
@@ -71,7 +72,7 @@ function go(view, opts = {}) {
   if (view === "plan" && opts.tab) setPlanTab(opts.tab);
   if (view === "stats" && opts.recap) setStatsOpts({ recap: opts.recap });
   current = view;
-  localStorage.setItem("ontop-view", view);
+  localStorage.setItem("dialedin-view", view);
   render();
   mainEl.focus({ preventScroll: true });
   window.scrollTo({ top: 0 });
@@ -120,7 +121,10 @@ async function boot() {
   await loadState();
   applyPrefs();
   requestPersistence();
-  registerSW({ immediate: true });
+  const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() { showUpdateBanner(() => updateSW(true)); },
+  });
   mountToppy();
   mountDock();
   initFocus();
@@ -134,6 +138,7 @@ async function boot() {
     redrawToppy();
   };
   countOpen();
+  if (store.loadFailed) { renderLoadError(); return; }
   if (!S().profile.setupDone) renderSetup(app, startApp);
   else startApp();
 
@@ -141,6 +146,42 @@ async function boot() {
   on("go", ({ view, ...opts }) => go(view, opts));
   on("timerEnded", () => { syncGoals(); scheduleRender(); });
   setInterval(onMinute, 60000);
+}
+
+// A new version is ready. Never reload on our own: a student could be mid-check-in.
+function showUpdateBanner(apply) {
+  if (document.querySelector(".update-banner")) return;
+  const b = document.createElement("div");
+  b.className = "update-banner";
+  b.innerHTML = `<span>✨ Dialed In has an update</span><button class="btn sm gold">Refresh</button><button class="icon-btn" aria-label="Later">✕</button>`;
+  b.querySelector(".btn").addEventListener("click", apply);
+  b.querySelector(".icon-btn").addEventListener("click", () => b.remove());
+  document.body.appendChild(b);
+}
+
+// Saved data exists but couldn't be read. Don't show setup (that would look like a fresh start)
+// and don't save anything — the real data stays untouched until it can be read again.
+function renderLoadError() {
+  app.innerHTML = `<div class="setup"><div class="setup-card stack">
+    <h2>We couldn't open your saved data 😕</h2>
+    <p>Nothing has been changed or deleted. This usually fixes itself — try reloading.</p>
+    <p class="small muted">If you're in a private/incognito window, or your browser blocks site storage, Dialed In can't read your data there.</p>
+    <div class="row wrap"><button class="btn primary" data-reload>Reload</button>
+      <button class="btn" data-restore>Restore from a backup file</button></div>
+    <input type="file" accept="application/json,.json" data-file hidden>
+  </div></div>`;
+  app.querySelector("[data-reload]").addEventListener("click", () => location.reload());
+  const file = app.querySelector("[data-file]");
+  app.querySelector("[data-restore]").addEventListener("click", () => file.click());
+  file.addEventListener("change", async () => {
+    try {
+      const data = JSON.parse(await file.files[0].text());
+      if (!["DialedIn", "Dialed In"].includes(data?.app) || !data.state) throw new Error();
+      store.loadFailed = false;
+      replaceState(data.state);
+      setTimeout(() => location.reload(), 300);
+    } catch { alert("That file isn't an Dialed In backup."); }
+  });
 }
 
 boot();

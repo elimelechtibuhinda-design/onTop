@@ -1,4 +1,4 @@
-# onTop 🦉
+# Dialed In 🦉
 
 A study tracker for students: plan with SMART goals, focus with a timer, take real breaks.
 No sign-in. Everything is stored in the browser on your own device.
@@ -36,10 +36,10 @@ The build is a plain static site, so `dist/` also works on Netlify, Cloudflare P
 
 ## Visitor counts (optional)
 
-onTop can count users anonymously with [GoatCounter](https://www.goatcounter.com). It's free for non-commercial use, sets no cookies and collects no personal data.
+Dialed In can count users anonymously with [GoatCounter](https://www.goatcounter.com). It's free for non-commercial use, sets no cookies and collects no personal data.
 
 What gets counted:
-- each time someone opens onTop (`/app`, or `/app-installed` for the installed app)
+- each time someone opens Dialed In (`/app`, or `/app-installed` for the installed app)
 - `new-user`, when someone finishes setup
 - `focus-session`, when someone saves a session
 

@@ -30,7 +30,7 @@ export const PLAYLISTS = {
 };
 const listOf = (id) => Object.keys(PLAYLISTS).find((k) => PLAYLISTS[k].tracks.some((t) => t.id === id));
 
-const KEY = "ontop-music";
+const KEY = "dialedin-music";
 const saved = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })();
 
 const audio = new Audio();
@@ -174,7 +174,7 @@ function mediaSession() {
   if (!("mediaSession" in navigator)) return;
   const t = current();
   navigator.mediaSession.metadata = new MediaMetadata({
-    title: t.title, artist: t.composer, album: `onTop · ${PLAYLISTS[st.list].name}`,
+    title: t.title, artist: t.composer, album: `Dialed In · ${PLAYLISTS[st.list].name}`,
     artwork: [{ src: `${import.meta.env.BASE_URL}icon-512.png`, sizes: "512x512", type: "image/png" }],
   });
   navigator.mediaSession.setActionHandler("play", () => play());

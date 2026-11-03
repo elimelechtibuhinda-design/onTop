@@ -1,6 +1,6 @@
 // Me: profile, Toppy, level/badges/garden, themes, sounds, accessibility, notifications, data & privacy.
-import { S, update, replaceState, saveNow, defaultState, freezeSaves } from "../lib/store.js";
-import { kvSet, doodleAll, doodleDelete, doodleClear, doodlePut } from "../lib/db.js";
+import { S, update, replaceState, saveNow, defaultState, freezeSaves, listSnapshots, restoreSnapshot } from "../lib/store.js";
+import { kvSet, kvDel, kvKeys, doodleAll, doodleDelete, doodleClear, doodlePut } from "../lib/db.js";
 import { esc, uid, download, todayKey, fmtDate } from "../lib/utils.js";
 import { levelInfo, RANKS, courseName } from "../lib/queries.js";
 import { BADGES, UNLOCKS, UNLOCK_NAMES, isUnlocked, unlockLevel, plantEmoji } from "../lib/rewards.js";
@@ -74,7 +74,7 @@ export function renderMe(el) {
         <label class="check"><input type="checkbox" data-t="notifications" ${p.notifications ? "checked" : ""}> Browser notifications (reminders while in another tab)</label>
         <label class="check"><input type="checkbox" data-t="chime" ${p.chime ? "checked" : ""}> Chime when Toppy talks</label>
         <label class="check"><input type="checkbox" data-t="eyeRule" ${p.eyeRule ? "checked" : ""}> 20-20-20 eye reminders</label>
-        <p class="tiny muted">Reminders work while onTop is open (any tab). Install it as an app so it can stay open all day.</p>
+        <p class="tiny muted">Reminders work while Dialed In is open (any tab). Install it as an app so it can stay open all day.</p>
       </div>
       <div class="card stack">
         <h3>🎨 Themes</h3>
@@ -116,19 +116,22 @@ export function renderMe(el) {
           <button class="btn" data-csv>📄 Export sessions (CSV)</button>
         </div>
         <p class="small muted">Moving to a new phone or laptop? Back up here, then Restore on the other device.</p>
+        <details><summary class="small"><b>🛟 Automatic snapshots</b> <span class="muted">— this device keeps a copy of your data every day and before each app update</span></summary>
+          <div data-snaps class="stack tight" style="margin-top:8px"><p class="small muted">Loading…</p></div></details>
+        <p class="tiny muted" data-persist></p>
         <input type="file" accept="application/json,.json" data-file hidden>
-        ${installPrompt ? `<button class="btn gold" data-install>📲 Install onTop as an app</button>` : `<p class="tiny muted">📲 To install: on iPhone tap Share → “Add to Home Screen”; on Android/Chrome use the menu → “Install app”.</p>`}
+        ${installPrompt ? `<button class="btn gold" data-install>📲 Install Dialed In as an app</button>` : `<p class="tiny muted">📲 To install: on iPhone tap Share → “Add to Home Screen”; on Android/Chrome use the menu → “Install app”.</p>`}
       </div>
       <div class="card stack">
         <h3>🔒 Privacy</h3>
         <p><b>Your study data never leaves your device.</b> No accounts. No ads. Your courses, sessions, notes and goals are stored in this browser only.</p>
-        ${analyticsAvailable() ? `<p class="small muted">onTop counts visits anonymously (no cookies, no personal info — just “someone opened onTop” and “someone finished a session”) so we know how many students use it.</p>
+        ${analyticsAvailable() ? `<p class="small muted">Dialed In counts visits anonymously (no cookies, no personal info — just “someone opened Dialed In” and “someone finished a session”) so we know how many students use it.</p>
         <label class="check small"><input type="checkbox" data-t="analyticsShare" ${p.analyticsOff ? "" : "checked"}> Count me in the anonymous usage numbers</label>` : ""}
         <p class="small muted">That also means if you clear your browser data, it's gone — so back up now and then.</p>
         <button class="btn danger" data-wipe>Delete everything</button>
       </div>
     </div>
-    <p class="footer-note">onTop · made with 💙💛 for students</p>`;
+    <p class="footer-note">Dialed In · made with 💙💛 for students</p>`;
 
   // Profile fields
   el.querySelectorAll("[data-p]").forEach((i) => i.addEventListener("change", () => update((s) => {
@@ -163,6 +166,11 @@ export function renderMe(el) {
   });
 
   renderGallery(el.querySelector("[data-gallery]"));
+  renderSnapshots(el.querySelector("[data-snaps]"));
+  navigator.storage?.persisted?.().then((ok) => {
+    const n = el.querySelector("[data-persist]");
+    if (n) n.textContent = ok ? "🔒 Your browser has marked Dialed In's storage as protected." : "Tip: installing Dialed In as an app helps your browser keep its data safe.";
+  });
 
   el.querySelector("[data-backup]").addEventListener("click", backupNow);
   const file = el.querySelector("[data-file]");
@@ -183,24 +191,38 @@ async function renderGallery(box) {
   box.querySelectorAll("[data-deldood]").forEach((b) => b.addEventListener("click", async () => { await doodleDelete(b.dataset.deldood); renderGallery(box); }));
 }
 
+async function renderSnapshots(box) {
+  let snaps = [];
+  try { snaps = await listSnapshots(); } catch { /* no IDB */ }
+  if (!box.isConnected) return;
+  if (!snaps.length) { box.innerHTML = `<p class="small muted">Your first snapshot is made the next time you open Dialed In.</p>`; return; }
+  box.innerHTML = snaps.map((s) => `<div class="list-row small"><span class="grow">${new Date(s.at).toLocaleString()} <span class="muted">· ${s.kind === "update" ? "before an update" : "daily"} · ${s.sessions} sessions, ${s.courses} courses</span></span>
+    <button class="btn sm" data-snap="${esc(String(s.key))}">Restore</button></div>`).join("");
+  box.querySelectorAll("[data-snap]").forEach((b) => b.addEventListener("click", async () => {
+    if (!(await confirmDialog("Go back to this snapshot? Anything you did after it will be replaced. (Tip: back up first if unsure.)", { okText: "Restore", danger: true, title: "Restore snapshot?" }))) return;
+    await restoreSnapshot(b.dataset.snap);
+    toast("Restored ✓");
+  }));
+}
+
 /* ---------------- data ---------------- */
 export async function backupNow() {
   await saveNow();
   let doodles = [];
   try { doodles = await doodleAll(); } catch { /* ignore */ }
   update((s) => { s.profile.lastBackup = Date.now(); });
-  const payload = { app: "onTop", format: 1, exportedAt: new Date().toISOString(), state: S(), doodles };
-  download(`ontop-backup-${todayKey()}.json`, JSON.stringify(payload));
+  const payload = { app: "DialedIn", format: 1, exportedAt: new Date().toISOString(), state: S(), doodles };
+  download(`dialedin-backup-${todayKey()}.json`, JSON.stringify(payload));
   toast("Backup downloaded 💾 Keep it somewhere safe (Drive, iCloud, email to yourself).");
 }
 
 async function restoreFrom(file) {
   if (!file) return;
   let data;
-  try { data = JSON.parse(await file.text()); } catch { return toast("That file isn't a valid onTop backup."); }
-  if (data?.app !== "onTop" || !data.state) return toast("That file isn't an onTop backup.");
+  try { data = JSON.parse(await file.text()); } catch { return toast("That file isn't a valid Dialed In backup."); }
+  if (!["DialedIn", "Dialed In"].includes(data?.app) || !data.state) return toast("That file isn't an Dialed In backup.");
   const n = data.state.sessions?.length || 0;
-  if (!(await confirmDialog(`Restore this backup from ${new Date(data.exportedAt).toLocaleString()} (${n} sessions)? It replaces everything currently in onTop on this device.`, { okText: "Restore", danger: true, title: "Restore backup?" }))) return;
+  if (!(await confirmDialog(`Restore this backup from ${new Date(data.exportedAt).toLocaleString()} (${n} sessions)? It replaces everything currently in Dialed In on this device.`, { okText: "Restore", danger: true, title: "Restore backup?" }))) return;
   replaceState(data.state);
   try { await doodleClear(); for (const d of data.doodles || []) await doodlePut(d); } catch { /* ignore */ }
   toast("Restored ✓ Welcome back!");
@@ -214,11 +236,11 @@ function exportCsv() {
     s.focus || "", s.mode || "", s.note || "",
   ]));
   const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-  download(`ontop-sessions-${todayKey()}.csv`, csv, "text/csv");
+  download(`dialedin-sessions-${todayKey()}.csv`, csv, "text/csv");
 }
 
 async function wipeAll() {
-  if (!(await confirmDialog("This permanently deletes ALL your onTop data on this device: courses, sessions, goals, notes, flashcards, garden, everything.", { okText: "Continue", danger: true, title: "Delete everything?" }))) return;
+  if (!(await confirmDialog("This permanently deletes ALL your Dialed In data on this device: courses, sessions, goals, notes, flashcards, garden, everything.", { okText: "Continue", danger: true, title: "Delete everything?" }))) return;
   openDialog(`
     <h2>Last check</h2>
     <p>Type <b>DELETE</b> to confirm. Consider backing up first.</p>
@@ -230,8 +252,9 @@ async function wipeAll() {
     go.addEventListener("click", async () => {
       freezeSaves();
       await kvSet("state", defaultState());
+      for (const k of await kvKeys()) if (String(k).startsWith("snap:")) await kvDel(k);
       try { await doodleClear(); } catch { /* ignore */ }
-      ["ontop-timer", "ontop-mix"].forEach((k) => localStorage.removeItem(k));
+      ["dialedin-timer", "dialedin-mix"].forEach((k) => localStorage.removeItem(k));
       location.reload();
     });
   });

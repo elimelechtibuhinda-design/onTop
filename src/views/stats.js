@@ -123,7 +123,7 @@ function bestFocus() {
   const used = buckets.filter((b) => b.n);
   const label = (h) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toLocaleTimeString(undefined, { hour: "numeric" }); };
   if (rated.length < 5) {
-    return `<div class="card-head"><h3>⏰ Best focus time</h3></div><p class="small muted">Rate your focus after ${5 - rated.length} more session${5 - rated.length > 1 ? "s" : ""} and onTop will show when you focus best.</p>`;
+    return `<div class="card-head"><h3>⏰ Best focus time</h3></div><p class="small muted">Rate your focus after ${5 - rated.length} more session${5 - rated.length > 1 ? "s" : ""} and Dialed In will show when you focus best.</p>`;
   }
   const best = used.filter((b) => b.n >= 2).sort((a, b) => b.sum / b.n - a.sum / a.n)[0] || used.sort((a, b) => b.sum / b.n - a.sum / a.n)[0];
   return `<div class="card-head"><h3>⏰ Best focus time</h3></div>
@@ -149,7 +149,7 @@ function focusQuality() {
   const recent = S().sessions.filter((s) => s.dateKey >= from);
   const tracked = recent.filter((s) => s.distractions !== undefined);
   if (!tracked.length) {
-    return `<div class="card-head"><h3>🎯 Focus quality</h3></div><p class="small muted">After your next session you'll see how often you get distracted, what pulls you away, and how often you're on task when onTop checks in.</p>`;
+    return `<div class="card-head"><h3>🎯 Focus quality</h3></div><p class="small muted">After your next session you'll see how often you get distracted, what pulls you away, and how often you're on task when Dialed In checks in.</p>`;
   }
   const hours = tracked.reduce((a, s) => a + s.durationSec, 0) / 3600;
   const dCount = tracked.reduce((a, s) => a + (s.distractions || 0), 0);
@@ -183,7 +183,7 @@ function focusQuality() {
     ${top.length ? `<div style="margin-top:14px"><span class="label">What pulls you away</span>
       ${top.map(([k, v]) => `<div class="hbar"><span class="name small">${REASON_LABEL[k] || k}</span><div class="bar"><i style="width:${(v / maxR) * 100}%;background:var(--warn)"></i></div><span class="val small">${v}×</span></div>`).join("")}
       <p class="small" style="margin-top:8px">💡 ${esc(REASON_TIP[top[0][0]] || REASON_TIP.other)}</p></div>` : ""}
-    <p class="tiny muted" style="margin-top:10px">Pausing the timer = distracted: that time is tracked separately and never counts as study. Browsers can't see your other tabs or apps (a privacy protection), so onTop measures focus from your pauses, random check-ins and your own rating — no spying.</p>`;
+    <p class="tiny muted" style="margin-top:10px">Pausing the timer = distracted: that time is tracked separately and never counts as study. Browsers can't see your other tabs or apps (a privacy protection), so Dialed In measures focus from your pauses, random check-ins and your own rating — no spying.</p>`;
 }
 
 function balanceWarning() {
@@ -247,7 +247,7 @@ function drawRecap(d) {
   g.fillStyle = grad; g.fillRect(0, 0, W, H);
   g.fillStyle = "rgba(242,169,0,.25)"; g.beginPath(); g.arc(W - 80, 80, 260, 0, Math.PI * 2); g.fill();
   const font = (w, s) => `${w} ${s}px Inter, system-ui, sans-serif`;
-  g.fillStyle = "#F2A900"; g.font = font(800, 40); g.fillText("onTop · weekly recap", 80, 120);
+  g.fillStyle = "#F2A900"; g.font = font(800, 40); g.fillText("Dialed In · weekly recap", 80, 120);
   g.fillStyle = "#c9d8ea"; g.font = font(500, 34);
   g.fillText(`${fmtDate(d.weekKey, { month: "short", day: "numeric" })} – ${fmtDate(d.end, { month: "short", day: "numeric" })}`, 80, 172);
   g.fillStyle = "#fff"; g.font = font(800, 180); g.fillText(fmtHM(d.total), 76, 380);
@@ -292,11 +292,11 @@ export function openRecap(weekKey) {
     <h2>📬 Weekly recap</h2>
     <img src="${url}" alt="Weekly recap: ${fmtHM(data.total)} studied" style="width:100%;border-radius:14px">
     <div class="dlg-actions"><button class="btn" data-close>Close</button><button class="btn" data-dl>⬇ Download</button><button class="btn primary" data-share>Share</button></div>`, (dlg) => {
-    dlg.querySelector("[data-dl]").addEventListener("click", () => cv.toBlob((b) => download(`ontop-recap-${weekKey}.png`, b)));
+    dlg.querySelector("[data-dl]").addEventListener("click", () => cv.toBlob((b) => download(`dialedin-recap-${weekKey}.png`, b)));
     dlg.querySelector("[data-share]").addEventListener("click", () => cv.toBlob(async (b) => {
-      const file = new File([b], `ontop-recap-${weekKey}.png`, { type: "image/png" });
+      const file = new File([b], `dialedin-recap-${weekKey}.png`, { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: "My onTop week", text: `I studied ${fmtHM(data.total)} this week with onTop 💙💛` }); } catch { /* cancelled */ }
+        try { await navigator.share({ files: [file], title: "My Dialed In week", text: `I was dialed in for ${fmtHM(data.total)} this week 💙💛 imdialedin.app` }); } catch { /* cancelled */ }
       } else { download(file.name, b); toast("Sharing isn't supported here — downloaded the image instead."); }
     }));
   });

@@ -32,9 +32,9 @@ export async function openPip(h) {
     if (pipSupported()) {
       win = await window.documentPictureInPicture.requestWindow({ width: 300, height: 210 });
     } else {
-      win = window.open("", "ontop-mini", "width=320,height=240,popup=yes");
+      win = window.open("", "dialedin-mini", "width=320,height=240,popup=yes");
       if (!win) return false;
-      win.document.title = "onTop timer";
+      win.document.title = "Dialed In timer";
     }
   } catch { win = null; return false; }
   const style = win.document.createElement("style");
@@ -66,8 +66,8 @@ function msg(t) { if (pipOpen()) win.document.querySelector("[data-msg]").textCo
 export function showButtons(paused = false) {
   if (!pipOpen()) return;
   area().innerHTML = paused
-    ? `<div class="row"><button class="gold" data-pause>▶ I'm back</button><button data-back title="Back to onTop">↩</button></div>`
-    : `<div class="row"><button data-pause>⏸ Pause</button><button data-back title="Back to onTop">↩</button></div>`;
+    ? `<div class="row"><button class="gold" data-pause>▶ I'm back</button><button data-back title="Back to Dialed In">↩</button></div>`
+    : `<div class="row"><button data-pause>⏸ Pause</button><button data-back title="Back to Dialed In">↩</button></div>`;
   area().querySelector("[data-pause]").addEventListener("click", () => {
     const wasPaused = paused;
     handlers.onPause?.();

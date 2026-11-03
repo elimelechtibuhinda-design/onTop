@@ -1,4 +1,4 @@
-// First-time setup: name → courses → exam dates → study style → "You're onTop ✓". Under a minute.
+// First-time setup: name → courses → exam dates → study style → "You're dialed in ✓". Under a minute.
 import { update } from "../lib/store.js";
 import { esc, uid, todayKey } from "../lib/utils.js";
 import { COURSE_COLORS } from "../lib/queries.js";
@@ -24,7 +24,7 @@ export function renderSetup(root, onDone) {
 
   const welcome = () => `
     <h1>Hi! I'm Toppy 🦉</h1>
-    <p class="muted">I'll help you stay <b>onTop</b> of your studies. Quick setup — under a minute.</p>
+    <p class="muted">I'll help you get <b>dialed in</b> and stay that way. Quick setup — under a minute.</p>
     <label class="field"><span>What should we call you?</span><input type="text" data-name value="${esc(d.name)}" placeholder="First name" autocomplete="given-name"></label>
     <p class="tiny muted">🔒 No sign-up. Everything stays on this device.</p>
     <div class="dlg-actions"><button class="btn primary" data-next>Next →</button></div>`;
@@ -67,7 +67,7 @@ export function renderSetup(root, onDone) {
 
   const done = () => `
     <div class="center stack">
-      <h1>You're onTop ✓</h1>
+      <h1>You're dialed in ✓</h1>
       <p class="muted">Hit the big <b>Start</b> button whenever you're ready. I'll remind you to study, take breaks, and celebrate your wins.</p>
       <button class="btn gold lg" data-finish>Let's go 🚀</button>
     </div>`;

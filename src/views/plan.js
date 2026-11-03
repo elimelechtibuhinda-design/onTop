@@ -271,7 +271,7 @@ function exam(el, rerender) {
   const plans = st.examPlans.map((p) => ({ p, ev: st.events.find((e) => e.id === p.eventId) })).filter((x) => x.ev);
   el.innerHTML = `
     <h2>Exam prep planner</h2>
-    <p class="small muted" style="margin-bottom:14px">Enter your topics and how long you can study each day. onTop spreads them out and saves the last 2 days for review and a practice test.</p>
+    <p class="small muted" style="margin-bottom:14px">Enter your topics and how long you can study each day. Dialed In spreads them out and saves the last 2 days for review and a practice test.</p>
     <div class="grid-2">
       <div class="card stack">
         <label class="field"><span>Which exam?</span>
@@ -365,7 +365,7 @@ function reviews(el) {
   const done = st.reviews.filter((r) => r.done);
   el.innerHTML = `
     <div class="row between wrap" style="margin-bottom:12px">
-      <div><h2>Spaced review</h2><p class="small muted">After you study a topic, onTop reminds you to review it after ${REVIEW_INTERVALS.join(", ")} days. That's how stuff sticks for the final.</p></div>
+      <div><h2>Spaced review</h2><p class="small muted">After you study a topic, Dialed In reminds you to review it after ${REVIEW_INTERVALS.join(", ")} days. That's how stuff sticks for the final.</p></div>
     </div>
     <form class="card row wrap" data-add style="margin-bottom:16px">
       <input type="text" name="topic" placeholder="Topic you just learned, e.g. Confidence intervals" class="grow" style="min-width:200px">

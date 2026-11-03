@@ -1,4 +1,4 @@
-# Builds onTop and publishes it to GitHub Pages on every push to main.
+# Builds Dialed In and publishes it to GitHub Pages on every push to main.
 name: Deploy to GitHub Pages
 on:
   push:

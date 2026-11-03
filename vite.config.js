@@ -2,16 +2,17 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  define: { __BUILD_ID__: JSON.stringify(String(Date.now())) },
   // Relative base so the build works on GitHub Pages sub-paths and any static host.
   base: "./",
   plugins: [
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["icon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "onTop — study tracker for students",
-        short_name: "onTop",
-        description: "Plan, focus and stay onTop of your studies. No sign-in; your data stays on your device.",
+        name: "Dialed In — study tracker for students",
+        short_name: "Dialed In",
+        description: "Plan, focus and get dialed in. No sign-in; your study data stays on your device.",
         theme_color: "#002145",
         background_color: "#002145",
         display: "standalone",
@@ -32,7 +33,7 @@ export default defineConfig({
           urlPattern: /\/music\/.*\.mp3$/,
           handler: "CacheFirst",
           options: {
-            cacheName: "ontop-piano",
+            cacheName: "dialedin-music",
             rangeRequests: true,
             cacheableResponse: { statuses: [200] },
             expiration: { maxEntries: 20 }

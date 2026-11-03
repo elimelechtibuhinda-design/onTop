@@ -1,5 +1,6 @@
 // App state: one object, persisted to IndexedDB (debounced), with change listeners.
-import { kvGet, kvSet } from "./db.js";
+import { kvGet, kvSet, kvDel, kvKeys, migrateOldDb } from "./db.js";
+import { todayKey } from "./utils.js";
 
 export const SCHEMA_VERSION = 1;
 
@@ -58,7 +59,9 @@ export function defaultState() {
 }
 
 const listeners = new Set();
-export const store = { state: defaultState(), ready: false };
+export const store = { state: defaultState(), ready: false, loadFailed: false };
+// Changes on every deploy; used to snapshot data right before a new version touches it.
+const BUILD_ID = typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : "dev";
 
 let saveTimer = null;
 let frozen = false;
@@ -70,7 +73,8 @@ function scheduleSave() {
 }
 export async function saveNow() {
   clearTimeout(saveTimer);
-  if (frozen) return;
+  // Never write if we couldn't read: saving defaults would overwrite the student's real data.
+  if (frozen || store.loadFailed) return;
   try {
     await kvSet("state", store.state);
   } catch (e) {
@@ -98,12 +102,53 @@ function migrate(saved) {
 
 export async function loadState() {
   try {
-    const saved = await kvGet("state");
-    if (saved) store.state = migrate(saved);
+    let saved = await kvGet("state");
+    if (saved === undefined && (await migrateOldDb())) saved = await kvGet("state");
+    if (saved !== undefined && (typeof saved !== "object" || saved === null)) throw new Error("saved data is unreadable");
+    if (saved) {
+      await snapshot(saved);
+      store.state = migrate(saved);
+    }
   } catch (e) {
     console.error("load failed", e);
+    store.loadFailed = true;
   }
   store.ready = true;
+}
+
+/* ---------- automatic snapshots (on this device, last 7) ---------- */
+const SNAP = "snap:";
+const MAX_SNAPS = 7;
+// One snapshot per day, plus one right before a new app version first runs.
+async function snapshot(raw) {
+  try {
+    if (!raw?.profile?.setupDone) return;
+    const lastBuild = await kvGet("lastBuild");
+    const isUpdate = lastBuild && lastBuild !== BUILD_ID;
+    const day = todayKey();
+    const keys = (await kvKeys()).filter((k) => String(k).startsWith(SNAP));
+    if (isUpdate) await kvSet(`${SNAP}${day}-update-${Date.now()}`, { at: Date.now(), kind: "update", state: raw });
+    else if (!keys.some((k) => String(k).startsWith(`${SNAP}${day}`))) await kvSet(`${SNAP}${day}`, { at: Date.now(), kind: "daily", state: raw });
+    await kvSet("lastBuild", BUILD_ID);
+    const all = (await kvKeys()).filter((k) => String(k).startsWith(SNAP)).sort();
+    for (const k of all.slice(0, Math.max(0, all.length - MAX_SNAPS))) await kvDel(k);
+  } catch (e) { console.error("snapshot failed", e); }
+}
+
+export async function listSnapshots() {
+  const keys = (await kvKeys()).filter((k) => String(k).startsWith(SNAP)).sort().reverse();
+  const out = [];
+  for (const k of keys) {
+    const s = await kvGet(k);
+    if (s) out.push({ key: k, at: s.at, kind: s.kind, sessions: s.state?.sessions?.length || 0, courses: s.state?.courses?.length || 0 });
+  }
+  return out;
+}
+export async function restoreSnapshot(key) {
+  const s = await kvGet(key);
+  if (!s?.state) throw new Error("snapshot missing");
+  store.loadFailed = false;
+  replaceState(s.state);
 }
 
 export function replaceState(next) {

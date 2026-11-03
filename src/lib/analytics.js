@@ -30,7 +30,7 @@ function send(path, title, isEvent) {
 // One count per app open. Installed-app opens are counted separately so installs can be tracked.
 export function countOpen() {
   const installed = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-  send(installed ? "/app-installed" : "/app", installed ? "onTop (installed app)" : "onTop");
+  send(installed ? "/app-installed" : "/app", installed ? "Dialed In (installed app)" : "Dialed In");
 }
 
 // Named milestones only — never any user content.

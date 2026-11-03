@@ -205,7 +205,7 @@ export function openGoalBuilder(existing = null, preset = {}) {
       </div></div>
     <div class="smart-check" data-c="M"></div>
 
-    <div class="field"><span><b>A</b>chievable — onTop checks this against your real study history</span></div>
+    <div class="field"><span><b>A</b>chievable — Dialed In checks this against your real study history</span></div>
     <div class="smart-check" data-c="A"></div>
 
     <div class="field"><span><b>R</b>elevant — Which course or bigger goal is this for?</span>

@@ -72,6 +72,8 @@ export function renderToday(el) {
   const recapWeek = dow === 0 ? weekStartKey() : dow === 1 ? addDays(weekStartKey(), -7) : null;
   const showRecap = recapWeek && p.lastRecapWeek !== recapWeek && secInRange(recapWeek, addDays(recapWeek, 6)) > 0;
   const plan = p.dayPlan && p.dayPlan.date === today ? p.dayPlan : null;
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const iosTip = isIOS && !navigator.standalone && !matchMedia("(display-mode: standalone)").matches && !p.iosTipDismissed;
 
   el.innerHTML = `
     <section class="hero">
@@ -101,6 +103,9 @@ export function renderToday(el) {
       </div>
     </section>
 
+    ${iosTip ? `<div class="card section row between wrap" style="border-color:var(--sky)">
+      <div><b>📲 On iPhone? Add Dialed In to your Home Screen</b><p class="small muted">Safari can clear website data after 7 days without a visit. Apps on your Home Screen keep it. Tap <b>Share</b> → <b>Add to Home Screen</b>.</p></div>
+      <button class="btn sm ghost" data-hideios>Got it</button></div>` : ""}
     ${needBackup ? `<div class="card section row between wrap" style="border-color:var(--gold)">
       <div><b>💾 Back up your data</b><p class="small muted">Everything lives on this device. A backup file keeps it safe if your browser data is cleared.</p></div>
       <button class="btn gold" data-backup>Back up now</button></div>` : ""}
@@ -158,6 +163,7 @@ export function renderToday(el) {
   })));
   el.querySelector("[data-setup]").addEventListener("click", () => openFocus({ courseId: el.querySelector("[data-course]").value }));
   el.querySelector("[data-backup]")?.addEventListener("click", backupNow);
+  el.querySelector("[data-hideios]")?.addEventListener("click", () => update((s2) => { s2.profile.iosTipDismissed = true; }));
   el.querySelector("[data-recap]")?.addEventListener("click", () => emit("go", { view: "stats", recap: recapWeek }));
   el.querySelector("[data-planday]").addEventListener("click", planMyDay);
   el.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); emit("go", { view: "plan", tab: b.dataset.go }); }));
@@ -244,7 +250,7 @@ function planMyDay() {
   const startDefault = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   openDialog(`
     <h2>🪄 Plan my day</h2>
-    <p class="small muted">Pick what you want to get done. onTop puts the most urgent deadline first and adds breaks between.</p>
+    <p class="small muted">Pick what you want to get done. Dialed In puts the most urgent deadline first and adds breaks between.</p>
     <div class="stack tight" style="max-height:40vh;overflow:auto">
       ${candidates.map((t) => `<label class="check"><input type="checkbox" value="${t.id}" ${t.date === today ? "checked" : ""}>
         <span class="dot" style="background:${courseColor(t.courseId)}"></span><span class="grow">${esc(t.title)} <span class="muted small">· ${esc(courseName(t.courseId))}${t.estMin ? ` · ${t.estMin}m` : ""}</span></span></label>`).join("")}
