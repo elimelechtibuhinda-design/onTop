@@ -20,7 +20,7 @@ import { renderToday } from "./views/today.js";
 import { renderPlan, setPlanTab } from "./views/plan.js";
 import { renderStats, setStatsOpts } from "./views/stats.js";
 import { renderMe } from "./views/me.js";
-import { initFocus, openFocus } from "./views/focus.js";
+import { initFocus, openFocus, isFocusActive } from "./views/focus.js";
 import { mountToppy, redraw as redrawToppy } from "./components/toppy.js";
 import { mountDock } from "./components/dock.js";
 import { syncGoals } from "./components/smart.js";
@@ -126,7 +126,13 @@ async function boot() {
   requestPersistence();
   const updateSW = registerSW({
     immediate: true,
-    onNeedRefresh() { showUpdateBanner(() => updateSW(true)); },
+    onNeedRefresh() {
+      const busy = () => isFocusActive() || document.querySelector("dialog[open]");
+      if (!busy()) return updateSW(true);
+      showUpdateBanner(() => updateSW(true));
+      // …and apply it on its own as soon as the session/dialog is over.
+      const h = setInterval(() => { if (!busy()) { clearInterval(h); updateSW(true); } }, 5000);
+    },
   });
   mountToppy();
   mountDock();

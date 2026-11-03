@@ -115,6 +115,7 @@ function begin(draft) {
     ...freshFocusStats(),
     sessionStartedAt: now(),
     sitPausedSec: 0,          // distracted time across every round of this sitting
+    sitPauses: 0,
     parkingIds: [],
   };
   update((st) => { st.profile.lastCourseId = T.courseId; st.profile.timerMode = T.mode; st.profile.studyWhere = T.where; });
@@ -182,7 +183,7 @@ function togglePause() {
   } else {
     T.pausedAt = now();
     T.pausedReasonLogged = false;
-    if (T.phase === "focus") T.distractions = (T.distractions || 0) + 1;
+    if (T.phase === "focus") { T.distractions = (T.distractions || 0) + 1; T.sitPauses = (T.sitPauses || 0) + 1; }
   }
   persist();
   render();
@@ -216,13 +217,10 @@ function tick() {
     if (bar && T.phaseDurSec) bar.style.width = Math.min(100, (el / T.phaseDurSec) * 100) + "%";
   }
   if (mini) mini.querySelector("b").textContent = display;
-  const total = distractedSoFar();
-  const distracted = T.phase === "focus" && (T.pausedAt || total >= 1) ? fmtHMS(total) : "";
+  const distracted = T.phase === "focus" && (T.pausedAt || sittingDistracted() >= 1) ? fmtHMS(sittingDistracted()) : "";
   if (root) {
     const set = (sel, v) => { const e = root.querySelector(sel); if (e) e.textContent = v; };
-    set("[data-distclock]", fmtHMS(total));
-    set("[data-distthis]", fmtHMS(currentPauseSec()));
-    set("[data-distsit]", fmtHMS(sittingDistracted()));
+    set("[data-distclock]", fmtHMS(sittingDistracted()));
     set("[data-fstats]", focusStatsLine());
   }
   updatePip(display, T.pausedAt ? (T.phase === "focus" ? "Paused · distracted" : "Paused") : T.phase === "focus" ? "Focus" : "Break", T.phase === "break", distracted);
@@ -355,10 +353,9 @@ function showReasonChips(sticky = false) {
 function focusStatsLine() {
   const p = T.pings || { yes: 0, no: 0 };
   const answered = p.yes + p.no;
-  const n = T.distractions || 0;
-  const sec = distractedSoFar();
+  const n = T.sitPauses || T.distractions || 0;
   const sit = sittingDistracted();
-  return `😵 ${n} pause${n === 1 ? "" : "s"}${sec >= 1 ? ` · ${fmtHMS(sec)} distracted` : ""}${sit - sec >= 1 ? ` (whole sitting ${fmtHMS(sit)})` : ""}${answered ? ` · ✅ ${p.yes}/${answered} on-task check-ins` : ""}`;
+  return `😵 ${n} pause${n === 1 ? "" : "s"}${sit >= 1 ? ` · ${fmtHMS(sit)} distracted` : ""}${answered ? ` · ✅ ${p.yes}/${answered} on-task check-ins` : ""}`;
 }
 function refreshFocusStats() {
   const el = root?.querySelector("[data-fstats]");
@@ -535,7 +532,7 @@ function render(draft) {
       <div class="clock" aria-live="off">--:--</div>
       ${T.phaseDurSec ? `<div class="progress"><i style="width:0"></i></div>` : ""}
       ${roundsTotal ? `<div class="rounds" aria-label="Round ${done + (isFocus ? 1 : 0)} of 4">${[0, 1, 2, 3].map((i) => `<i class="${i < done ? "on" : ""}"></i>`).join("")}</div>` : ""}
-      ${isFocus ? `<div class="working">${T.workingOn ? `Working on: <b>${esc(T.workingOn)}</b>` : `<input type="text" data-working placeholder="What are you working on? (one line)" aria-label="What are you working on">`}</div>` : ""}
+      ${isFocus && !T.pausedAt ? `<div class="working">${T.workingOn ? `Working on: <b>${esc(T.workingOn)}</b>` : `<input type="text" data-working placeholder="What are you working on? (one line)" aria-label="What are you working on">`}</div>` : ""}
       <div class="focus-actions">
         ${isFocus ? `
           <button class="btn ${T.pausedAt ? "gold" : ""}" data-pause>${T.pausedAt ? "▶ I'm back — resume" : "⏸ Pause"}</button>
@@ -547,10 +544,8 @@ function render(draft) {
           <button class="btn" data-stop>Done for now</button>`}
       </div>
       ${isFocus && T.pausedAt ? `<div class="dist-clock" role="status">
-          <div class="label" style="color:var(--gold)">😵 Distracted — total this round</div>
-          <div class="mono" data-distclock style="font-size:2.2rem;font-weight:800;color:var(--gold)">${fmtHMS(distractedSoFar())}</div>
-          <div class="small mono" style="color:#e9d9a6">this pause <b data-distthis>00:00</b>${T.round > 0 || (T.sitPausedSec || 0) > (T.pausedSec || 0) ? ` · whole sitting <b data-distsit>${fmtHMS(sittingDistracted())}</b>` : ""}</div>
-          <div class="tiny" style="color:#a9bdd6">Your study timer is frozen. This time is logged as distracted, not study.</div>
+          <div class="label" style="color:var(--gold)">😵 Distracted</div>
+          <div class="mono" data-distclock style="font-size:2.2rem;font-weight:800;color:var(--gold)">${fmtHMS(sittingDistracted())}</div>
         </div>` : ""}
       ${isFocus ? `<div data-reasonbox></div>
         ${T.pausedAt ? "" : `<div class="small" style="color:#a9bdd6" data-fstats>${focusStatsLine()}</div>`}
