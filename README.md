@@ -49,3 +49,22 @@ To turn it on:
 1. Sign up at goatcounter.com and pick a site code (e.g. `ontop` → `ontop.goatcounter.com`).
 2. In the GitHub repo, go to **Settings → Secrets and variables → Actions → Variables** and add `GOATCOUNTER_CODE` with your code.
 3. Push. The deploy build picks it up. Without the variable, counting is completely off.
+
+## Sync between devices (optional)
+
+Students can turn on sync in **Me → Sync between devices**. They get a 16-character code and a QR code, and typing or scanning it on another device joins the same sync group.
+
+- **End-to-end encrypted.** The code never leaves the device. From it, the app derives a lookup id and an AES-256 key (PBKDF2, 200k rounds). Data is gzipped and encrypted on the device, so the server only ever stores ciphertext.
+- **Merging** (`src/lib/sync-merge.js`): a three-way merge against the last agreed state. Additions from both devices are kept, an edit beats a deletion, settings merge field by field, and XP is recomputed from sessions. Tests: `npm test`.
+- **Server:** `worker/`, a Cloudflare Worker plus a D1 database at `https://sync.imdialedin.app` with three endpoints (GET / PUT with version check / DELETE). Break-art doodles and device-only settings don't sync.
+
+To deploy the server:
+```bash
+cd worker
+npm install
+npx wrangler login
+npx wrangler d1 create dialedin-sync   # paste the database_id into wrangler.toml
+npm run db:remote                      # creates the table
+npm run deploy                         # publishes to sync.imdialedin.app
+```
+To run it locally: `npm run db:local && npm run dev`, then build the app with `VITE_SYNC_URL=http://localhost:8787`.

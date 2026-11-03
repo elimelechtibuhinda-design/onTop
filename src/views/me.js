@@ -8,6 +8,8 @@ import { toppySvg, requestNotifications, redraw as redrawToppy } from "../compon
 import { renderSounds } from "../components/sounds.js";
 import { openDialog, confirmDialog, toast } from "../components/ui.js";
 import { analyticsAvailable } from "../lib/analytics.js";
+import { renderSyncCard } from "../components/sync-ui.js";
+import { turnOff as syncOff } from "../lib/sync.js";
 
 const THEME_SWATCH = {
   classic: "linear-gradient(135deg,#002145,#0055B7 60%,#F2A900)",
@@ -106,6 +108,7 @@ export function renderMe(el) {
       </div>
     </div>
 
+    <div class="card section" data-sync></div>
     <div class="grid-2 section">
       <div class="card stack">
         <h3>💾 Your data</h3>
@@ -124,7 +127,8 @@ export function renderMe(el) {
       </div>
       <div class="card stack">
         <h3>🔒 Privacy</h3>
-        <p><b>Your study data never leaves your device.</b> No accounts. No ads. Your courses, sessions, notes and goals are stored in this browser only.</p>
+        <p><b>Your study data stays on your device.</b> No accounts. No ads. Your courses, sessions, notes and goals are stored in this browser.</p>
+        <p class="small muted">If you turn on <b>Sync</b>, a copy is encrypted on your device before it's uploaded — only your devices hold the key, so nobody else (including us) can read it. Break-art doodles stay on each device.</p>
         ${analyticsAvailable() ? `<p class="small muted">Dialed In counts visits anonymously (no cookies, no personal info — just “someone opened Dialed In” and “someone finished a session”) so we know how many students use it.</p>
         <label class="check small"><input type="checkbox" data-t="analyticsShare" ${p.analyticsOff ? "" : "checked"}> Count me in the anonymous usage numbers</label>` : ""}
         <p class="small muted">That also means if you clear your browser data, it's gone — so back up now and then.</p>
@@ -166,6 +170,7 @@ export function renderMe(el) {
   });
 
   renderGallery(el.querySelector("[data-gallery]"));
+  renderSyncCard(el.querySelector("[data-sync]"));
   renderSnapshots(el.querySelector("[data-snaps]"));
   navigator.storage?.persisted?.().then((ok) => {
     const n = el.querySelector("[data-persist]");
@@ -251,6 +256,7 @@ async function wipeAll() {
     dlg.querySelector("[data-bk]").addEventListener("click", backupNow);
     go.addEventListener("click", async () => {
       freezeSaves();
+      syncOff();
       await kvSet("state", defaultState());
       for (const k of await kvKeys()) if (String(k).startsWith("snap:")) await kvDel(k);
       try { await doodleClear(); } catch { /* ignore */ }

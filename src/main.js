@@ -26,6 +26,9 @@ import { mountDock } from "./components/dock.js";
 import { syncGoals } from "./components/smart.js";
 import { checkBadges } from "./lib/rewards.js";
 import { countOpen } from "./lib/analytics.js";
+import { initSync } from "./lib/sync.js";
+import { openJoinDialog } from "./components/sync-ui.js";
+import { syncInfo } from "./lib/sync.js";
 
 const VIEWS = {
   today: { label: "Today", icon: "🏠", title: "Today", render: renderToday },
@@ -140,6 +143,13 @@ async function boot() {
 
   const startApp = () => {
     shell();
+    initSync();
+    // Opened from a sync QR code / link: offer to join (the code stays in the #fragment, never sent anywhere).
+    const m = location.hash.match(/sync=([0-9A-Za-z-]+)/);
+    if (m) {
+      history.replaceState(null, "", location.pathname + location.search);
+      if (!syncInfo().on) setTimeout(() => openJoinDialog(m[1]), 400);
+    }
     carryOver();
     syncGoals();
     checkBadges();
@@ -148,7 +158,11 @@ async function boot() {
   };
   countOpen();
   if (store.loadFailed) { renderLoadError(); return; }
-  if (!S().profile.setupDone) renderSetup(app, startApp);
+  if (!S().profile.setupDone) {
+    renderSetup(app, startApp);
+    const m = location.hash.match(/sync=([0-9A-Za-z-]+)/);
+    if (m) { history.replaceState(null, "", location.pathname + location.search); setTimeout(() => openJoinDialog(m[1], () => location.reload()), 400); }
+  }
   else startApp();
 
   subscribe(() => { applyPrefs(); redrawToppy(); syncGoals(); if (mainEl) scheduleRender(); });

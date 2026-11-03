@@ -4,6 +4,7 @@ import { esc, uid, todayKey } from "../lib/utils.js";
 import { COURSE_COLORS } from "../lib/queries.js";
 import { toppySvg } from "../components/toppy.js";
 import { countEvent } from "../lib/analytics.js";
+import { openJoinDialog } from "../components/sync-ui.js";
 import { EMOJIS } from "./plan.js";
 
 export function renderSetup(root, onDone) {
@@ -27,7 +28,7 @@ export function renderSetup(root, onDone) {
     <p class="muted">I'll help you get <b>dialed in</b> and stay that way. Quick setup — under a minute.</p>
     <label class="field"><span>What should we call you?</span><input type="text" data-name value="${esc(d.name)}" placeholder="First name" autocomplete="given-name"></label>
     <p class="tiny muted">🔒 No sign-up. Everything stays on this device.</p>
-    <div class="dlg-actions"><button class="btn primary" data-next>Next →</button></div>`;
+    <div class="dlg-actions" style="justify-content:space-between"><button class="btn ghost" data-joinsync>Already use Dialed In? Join with your sync code</button><button class="btn primary" data-next>Next →</button></div>`;
 
   const courses = () => `
     <h2>What are you studying, ${esc(d.name || "friend")}?</h2>
@@ -75,6 +76,8 @@ export function renderSetup(root, onDone) {
   const wire = () => {
     const q = (s) => root.querySelector(s);
     q("[data-back]")?.addEventListener("click", () => { step--; draw(); });
+    // Joining brings over the profile, courses and everything else, so setup is done.
+    q("[data-joinsync]")?.addEventListener("click", () => openJoinDialog("", () => location.reload()));
     q("[data-next]")?.addEventListener("click", () => {
       if (step === 0) d.name = q("[data-name]").value.trim();
       if (step === 2) {

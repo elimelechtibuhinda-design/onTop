@@ -1,0 +1,14 @@
+{
+  "name": "dialedin-sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --persist-to .wrangler/state",
+    "db:local": "wrangler d1 execute dialedin-sync --local --persist-to .wrangler/state --file schema.sql",
+    "db:remote": "wrangler d1 execute dialedin-sync --remote --file schema.sql",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.156.2"
+  }
+}
