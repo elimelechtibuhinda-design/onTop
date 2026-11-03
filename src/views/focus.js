@@ -553,7 +553,7 @@ function render(draft) {
           <div class="tiny" style="color:#a9bdd6">Your study timer is frozen. This time is logged as distracted, not study.</div>
         </div>` : ""}
       ${isFocus ? `<div data-reasonbox></div>
-        <div class="small" style="color:#a9bdd6" data-fstats>${focusStatsLine()}</div>
+        ${T.pausedAt ? "" : `<div class="small" style="color:#a9bdd6" data-fstats>${focusStatsLine()}</div>`}
         <div class="tiny" style="color:#a9bdd6;max-width:520px">${T.where === "here"
           ? "📱 Studying right here — leaving Dialed In counts as a possible distraction."
           : "💻 Working in other tabs/apps is fine."} Got distracted? Hit <b>Pause</b> — the distraction timer runs until you're back. Pop out the mini timer to keep it beside your work.</div>` : ""}
@@ -567,7 +567,6 @@ function render(draft) {
   root.querySelectorAll("[data-panel]").forEach((b) => b.addEventListener("click", () => { panel = panel === b.dataset.panel ? null : b.dataset.panel; render(); }));
   root.querySelector("[data-min]").addEventListener("click", minimize);
   root.querySelector("[data-pause]")?.addEventListener("click", togglePause);
-  if (isFocus && T.pausedAt) showReasonChips(true);
   root.querySelector("[data-popout]")?.addEventListener("click", popOut);
   root.querySelector("[data-takebreak]")?.addEventListener("click", () => {
     const dur = elapsed();

@@ -68,11 +68,7 @@ export function showButtons(paused = false) {
   area().innerHTML = paused
     ? `<div class="row"><button class="gold" data-pause>▶ I'm back</button><button data-back title="Back to Dialed In">↩</button></div>`
     : `<div class="row"><button data-pause>⏸ Pause</button><button data-back title="Back to Dialed In">↩</button></div>`;
-  area().querySelector("[data-pause]").addEventListener("click", () => {
-    const wasPaused = paused;
-    handlers.onPause?.();
-    if (!wasPaused) askReason();
-  });
+  area().querySelector("[data-pause]").addEventListener("click", () => handlers.onPause?.());
   area().querySelector("[data-back]").addEventListener("click", () => { window.focus(); handlers.onBack?.(); });
 }
 
