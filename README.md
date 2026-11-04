@@ -43,7 +43,7 @@ What gets counted:
 - `new-user`, when someone finishes setup
 - `focus-session`, when someone saves a session
 
-Nothing a student types is ever sent. Students can opt out in **Me → Privacy**, and Do Not Track is respected.
+Nothing a student types is ever sent. Do Not Track is respected.
 
 To turn it on:
 1. Sign up at goatcounter.com and pick a site code (e.g. `ontop` → `ontop.goatcounter.com`).

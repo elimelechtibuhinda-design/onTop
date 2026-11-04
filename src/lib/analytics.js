@@ -1,15 +1,10 @@
 // Anonymous usage counts via GoatCounter (https://www.goatcounter.com): no cookies, no personal data,
 // no third-party script — just a tiny "count this" request. Never sends anything the student typed.
-// Off unless VITE_GOATCOUNTER_CODE is set at build time; students can opt out in Me; Do Not Track is respected.
-import { S } from "./store.js";
-
+// Off unless VITE_GOATCOUNTER_CODE is set at build time. Browsers with Do Not Track / GPC on are skipped.
 const CODE = import.meta.env.VITE_GOATCOUNTER_CODE;
-
-export const analyticsAvailable = () => !!CODE;
 
 function allowed() {
   if (!CODE || import.meta.env.DEV) return false;
-  if (S().profile.analyticsOff) return false;
   if (navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl) return false;
   return true;
 }

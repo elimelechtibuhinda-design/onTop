@@ -7,7 +7,6 @@ import { BADGES, UNLOCKS, UNLOCK_NAMES, isUnlocked, unlockLevel, plantEmoji } fr
 import { toppySvg, requestNotifications, redraw as redrawToppy } from "../components/toppy.js";
 import { renderSounds } from "../components/sounds.js";
 import { openDialog, confirmDialog, toast } from "../components/ui.js";
-import { analyticsAvailable } from "../lib/analytics.js";
 import { renderSyncCard } from "../components/sync-ui.js";
 import { turnOff as syncOff } from "../lib/sync.js";
 
@@ -129,8 +128,6 @@ export function renderMe(el) {
         <h3>🔒 Privacy</h3>
         <p><b>Your study data stays on your device.</b> No accounts. No ads. Your courses, sessions, notes and goals are stored in this browser.</p>
         <p class="small muted">If you turn on <b>Sync</b>, a copy is encrypted on your device before it's uploaded — only your devices hold the key, so nobody else (including us) can read it. Break-art doodles stay on each device.</p>
-        ${analyticsAvailable() ? `<p class="small muted">Dialed In counts visits anonymously (no cookies, no personal info — just “someone opened Dialed In” and “someone finished a session”) so we know how many students use it.</p>
-        <label class="check small"><input type="checkbox" data-t="analyticsShare" ${p.analyticsOff ? "" : "checked"}> Count me in the anonymous usage numbers</label>` : ""}
         <p class="small muted">That also means if you clear your browser data, it's gone — so back up now and then.</p>
         <button class="btn danger" data-wipe>Delete everything</button>
       </div>
@@ -156,7 +153,6 @@ export function renderMe(el) {
       else update((s) => { s.profile.notifications = false; });
       return;
     }
-    if (k === "analyticsShare") { update((s) => { s.profile.analyticsOff = !c.checked; }); return; }
     update((s) => { s.profile[k] = k === "font" ? (c.checked ? "easy" : "default") : c.checked; });
   }));
   renderSounds(el.querySelector("[data-sounds]"));
