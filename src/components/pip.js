@@ -1,6 +1,6 @@
 // Pop-out mini timer. Uses Document Picture-in-Picture (always on top, Chrome/Edge 116+);
 // falls back to a small popup window elsewhere. Shows the clock, Pause (= distracted, with a
-// live distraction clock) and answers focus pings while the student works in other apps.
+// live distraction clock), Finish, and answers focus pings while the student works in other apps.
 import { esc } from "../lib/utils.js";
 
 let win = null;
@@ -65,10 +65,24 @@ function msg(t) { if (pipOpen()) win.document.querySelector("[data-msg]").textCo
 
 export function showButtons(paused = false) {
   if (!pipOpen()) return;
-  area().innerHTML = paused
-    ? `<div class="row"><button class="gold" data-pause>▶ I'm back</button></div>`
-    : `<div class="row"><button data-pause>⏸ Pause</button></div>`;
-  area().querySelector("[data-pause]").addEventListener("click", () => handlers.onPause?.());
+  const brk = !!handlers.isBreak?.();
+  area().innerHTML = `<div class="row">${brk ? "" : paused
+    ? `<button class="gold" data-pause>▶ I'm back</button>`
+    : `<button data-pause>⏸ Pause</button>`}<button data-finish>${brk ? "Done for now" : "✓ Finish"}</button></div>`;
+  area().querySelector("[data-pause]")?.addEventListener("click", () => handlers.onPause?.());
+  area().querySelector("[data-finish]").addEventListener("click", brk ? finish : confirmFinish);
+}
+
+// Ask right here, so they don't have to switch tabs just to say yes.
+function confirmFinish() {
+  area().innerHTML = `<div class="ask">End this session?</div><div class="row"><button class="gold" data-yes>✓ Yes, finish</button><button data-no>Keep going</button></div>`;
+  area().querySelector("[data-yes]").addEventListener("click", finish);
+  area().querySelector("[data-no]").addEventListener("click", () => showButtons(!!handlers.isPaused?.()));
+}
+function finish() {
+  area().innerHTML = "";
+  msg("✓ Done! Rate & save it in the Dialed In tab.");
+  handlers.onFinish?.();
 }
 
 export const REASONS = [["phone", "📱 Phone"], ["chat", "💬 Chat"], ["social", "📲 Social"], ["noise", "🔊 Noise"], ["tired", "😴 Tired"], ["other", "🤔 Other"]];

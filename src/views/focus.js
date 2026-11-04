@@ -139,6 +139,7 @@ function startBreak() {
   duck(true);
   emit("breakStart");
   render();
+  pipButtons(false);
 }
 
 function startNextFocus() {
@@ -153,6 +154,7 @@ function startNextFocus() {
   persist();
   duck(false);
   render();
+  pipButtons(false);
 }
 
 function endAll() {
@@ -368,6 +370,11 @@ async function popOut() {
     onPing: (yes) => answerPing(yes),
     onPause: () => togglePause(),
     isPaused: () => !!T.pausedAt,
+    isBreak: () => T.phase !== "focus",
+    onFinish: () => {
+      try { window.focus(); } catch { /* the browser may not allow it */ }
+      if (T.phase === "focus") finishPressed({ confirmed: true }); else endAll();
+    },
     onBack: () => { minimized = false; openOverlay(); },
     onClose: () => {},
   });
@@ -497,11 +504,13 @@ function minimize() {
   stopGame();
   root?.remove(); root = null;
   document.body.classList.remove("focus-open");
-  mini = document.createElement("button");
-  mini.className = "btn gold";
-  mini.style.cssText = "position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:95;box-shadow:0 6px 20px rgba(0,0,0,.25)";
-  mini.innerHTML = `${T.phase === "focus" ? "🎯" : "☕"} <b class="mono">--:--</b> · Open timer`;
-  mini.addEventListener("click", () => { minimized = false; openOverlay(); });
+  mini = document.createElement("div");
+  mini.className = "row";
+  mini.style.cssText = "position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:95;gap:6px;flex-wrap:nowrap";
+  mini.innerHTML = `<button class="btn gold" data-open style="box-shadow:0 6px 20px rgba(0,0,0,.25)">${T.phase === "focus" ? "🎯" : "☕"} <b class="mono">--:--</b> · Open timer</button>
+    <button class="btn" data-finish style="box-shadow:0 6px 20px rgba(0,0,0,.25)" aria-label="Finish session">✓ Finish</button>`;
+  mini.querySelector("[data-open]").addEventListener("click", () => { minimized = false; openOverlay(); });
+  mini.querySelector("[data-finish]").addEventListener("click", () => (T.phase === "focus" ? finishPressed() : endAll()));
   document.body.appendChild(mini);
   tick();
 }
@@ -581,14 +590,15 @@ function render(draft) {
   tick();
 }
 
-async function finishPressed() {
+// `confirmed`: the student already said "yes, end it" (e.g. in the pop-out timer).
+async function finishPressed({ confirmed = false } = {}) {
   const el = elapsed();
   if (T.mode === "stopwatch") {
     T.checkinOpen = true; persist();
     return checkIn({ durationSec: el, completed: true, then: endAll });
   }
   const early = el < T.phaseDurSec;
-  if (early && !(await confirmDialog(`You're ${fmtHM(T.phaseDurSec - el)} away from finishing this round. End now? Your garden plant will wilt 🥀`, { okText: "End session", title: "End early?" }))) return;
+  if (early && !confirmed && !(await confirmDialog(`You're ${fmtHM(T.phaseDurSec - el)} away from finishing this round. End now? Your garden plant will wilt 🥀`, { okText: "End session", title: "End early?" }))) return;
   if (el < 60) { endAll(); toast("Session under a minute — not logged."); return; }
   T.checkinOpen = true; persist();
   checkIn({ durationSec: el, completed: !early, quitEarly: early, then: endAll });
