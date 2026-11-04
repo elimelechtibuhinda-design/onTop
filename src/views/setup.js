@@ -6,6 +6,15 @@ import { toppySvg } from "../components/toppy.js";
 import { countEvent } from "../lib/analytics.js";
 import { openJoinDialog } from "../components/sync-ui.js";
 import { EMOJIS } from "./plan.js";
+import { toast } from "../components/ui.js";
+
+// One quick nudge after setup so students can find the app again. Skipped inside the installed app.
+function bookmarkTip() {
+  if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) return;
+  const phone = matchMedia("(pointer: coarse)").matches;
+  const key = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘D" : "Ctrl+D";
+  setTimeout(() => toast(phone ? "🔖 Tip: add Dialed In to your Home Screen so it's easy to find." : `🔖 Tip: bookmark Dialed In (${key}) so it's easy to find.`, 7000), 1200);
+}
 
 export function renderSetup(root, onDone) {
   const d = { name: "", courses: [], exams: [], mode: "pomodoro", dailyGoalMin: 120, focusMin: 40, breakMin: 8 };
@@ -123,6 +132,7 @@ export function renderSetup(root, onDone) {
       });
       countEvent("new-user");
       onDone();
+      bookmarkTip();
     });
   };
   draw();
