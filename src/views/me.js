@@ -226,7 +226,7 @@ async function restoreFrom(file) {
   if (!file) return;
   let data;
   try { data = JSON.parse(await file.text()); } catch { return toast("That file isn't a valid Dialed In backup."); }
-  if (!["DialedIn", "Dialed In"].includes(data?.app) || !data.state) return toast("That file isn't an Dialed In backup.");
+  if (!["DialedIn", "Dialed In"].includes(data?.app) || !data.state) return toast("That file isn't a Dialed In backup.");
   const n = data.state.sessions?.length || 0;
   if (!(await confirmDialog(`Restore this backup from ${new Date(data.exportedAt).toLocaleString()} (${n} sessions)? It replaces everything currently in Dialed In on this device.`, { okText: "Restore", danger: true, title: "Restore backup?" }))) return;
   replaceState(data.state);

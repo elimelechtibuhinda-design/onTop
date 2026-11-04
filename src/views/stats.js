@@ -1,8 +1,9 @@
 // Stats: week chart, course split, year heatmap, best focus time, balance warning, weekly recap image, session log.
 import { S, update } from "../lib/store.js";
-import { esc, todayKey, addDays, weekStartKey, fmtHM, fmtDate, fmtTime, parseKey, download } from "../lib/utils.js";
+import { esc, todayKey, addDays, weekStartKey, fmtHM, fmtDate, fmtTime, parseKey, download, dateKey } from "../lib/utils.js";
 import { secOn, secInRange, courseName, courseColor, streakInfo, upcomingEvents, weekDays, levelInfo } from "../lib/queries.js";
-import { confirmDialog, openDialog, toast } from "../components/ui.js";
+import { confirmDialog, openDialog, toast, courseOptions } from "../components/ui.js";
+import { xpFromSessions } from "../lib/sync-merge.js";
 
 const ui = { range: "week", logLimit: 30, chart: "days", weekOffset: 0 };
 export function setStatsOpts(o) { Object.assign(ui, o); }
@@ -50,8 +51,9 @@ export function renderStats(el) {
   el.querySelector("[data-recaplast]").addEventListener("click", () => openRecap(addDays(weekStartKey(), -7)));
   el.querySelector("[data-more]")?.addEventListener("click", () => { ui.logLimit += 50; renderStats(el); });
   el.querySelectorAll("[data-delsess]").forEach((b) => b.addEventListener("click", async () => {
-    if (await confirmDialog("Delete this session from your log?", { okText: "Delete", danger: true })) update((s) => { s.sessions = s.sessions.filter((x) => x.id !== b.dataset.delsess); });
+    if (await confirmDialog("Delete this session from your log?", { okText: "Delete", danger: true })) update((s) => { s.sessions = s.sessions.filter((x) => x.id !== b.dataset.delsess); recount(s); });
   }));
+  el.querySelectorAll("[data-editsess]").forEach((b) => b.addEventListener("click", () => editSession(b.dataset.editsess)));
   if (ui.recap) { const w = ui.recap; ui.recap = null; setTimeout(() => openRecap(w), 50); }
 }
 
@@ -304,6 +306,63 @@ function balanceWarning() {
     <p class="small">In the last 2 weeks, <b>${Math.round(share * 100)}%</b> of your time went to ${esc(courseName(domId))} and <b>${Math.round(neglected.share * 100)}%</b> to ${esc(neglected.c.name)}. Your ${esc(neglected.c.name)} ${esc(neglected.next.title)} is sooner (${fmtDate(neglected.next.date)}).</p></div>`;
 }
 
+// After a session is edited or deleted, XP and the best-day record follow the log again.
+function recount(st) {
+  st.xp = xpFromSessions(st.sessions);
+  const days = {};
+  st.sessions.forEach((x) => { days[x.dateKey] = (days[x.dateKey] || 0) + x.durationSec; });
+  st.records.bestDaySec = Math.max(0, ...Object.values(days));
+}
+
+// Fix a session after the fact, e.g. the timer kept running because they forgot to pause.
+function editSession(id) {
+  const s = S().sessions.find((x) => x.id === id);
+  if (!s) return;
+  const start = new Date(s.start);
+  const hhmm = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
+  const focusMin = Math.round(s.durationSec / 60);
+  const distMin = Math.round(distOf(s) / 60);
+  openDialog(`
+    <h2>Edit session</h2>
+    <p class="small muted">Forgot to pause? Fix the times here — your stats and XP update to match.</p>
+    <label class="field"><span>Course</span><select data-course>${courseOptions(S().courses, s.courseId || "")}</select></label>
+    <div class="row wrap">
+      <label class="field grow"><span>Day</span><input type="date" data-date value="${s.dateKey}" max="${todayKey()}"></label>
+      <label class="field grow"><span>Started at</span><input type="time" data-start value="${hhmm}"></label>
+    </div>
+    <div class="row wrap">
+      <label class="field grow"><span>Focused (min)</span><input type="number" data-focus min="1" max="1440" value="${focusMin}"></label>
+      <label class="field grow"><span>Distracted (min)</span><input type="number" data-dist min="0" max="1440" value="${distMin}"></label>
+    </div>
+    <label class="field"><span>Note</span><input type="text" data-note value="${esc(s.note || "")}" placeholder="What did you work on?"></label>
+    <div class="dlg-actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-save>Save</button></div>`, (dlg, close) => {
+    const val = (k) => dlg.querySelector(`[data-${k}]`).value;
+    dlg.querySelector("[data-save]").addEventListener("click", () => {
+      const fm = Math.round(+val("focus")), dm = Math.max(0, Math.round(+val("dist") || 0));
+      if (!(fm >= 1) || fm > 1440) return toast("Focused time should be between 1 and 1440 minutes.");
+      if (dm > 1440) return toast("Distracted time should be at most 1440 minutes.");
+      if (!val("date")) return toast("Pick a day.");
+      const [y, mo, d] = val("date").split("-").map(Number);
+      const [h, mi] = (val("start") || hhmm).split(":").map(Number);
+      const startMs = new Date(y, mo - 1, d, h, mi).getTime();
+      update((st) => {
+        const x = st.sessions.find((z) => z.id === id);
+        if (!x) return;
+        x.courseId = val("course");
+        x.start = startMs;
+        x.dateKey = dateKey(new Date(startMs));
+        x.durationSec = fm === focusMin ? x.durationSec : fm * 60;   // keep exact seconds if unchanged
+        if (dm !== distMin) { x.pausedSec = dm * 60; x.distractedSec = 0; }
+        x.note = val("note").trim();
+        x.edited = Date.now();
+        recount(st);
+      });
+      toast("Session updated ✓");
+      close();
+    });
+  });
+}
+
 function sessionLog() {
   const list = S().sessions.slice().sort((a, b) => b.start - a.start);
   const shown = list.slice(0, ui.logLimit);
@@ -317,6 +376,7 @@ function sessionLog() {
       <div class="grow"><b class="small">${esc(courseName(s.courseId))}</b> <span class="tiny muted">${fmtTime(s.start)} · ${s.mode || ""}${s.focus ? " · " + ["", "😩", "😐", "🙂", "🔥"][s.focus] : ""}${s.distractions ? ` · 😵 ${s.distractions}×` : ""}${(s.pausedSec || 0) + (s.distractedSec || 0) >= 30 ? ` · ${fmtHM((s.pausedSec || 0) + (s.distractedSec || 0))} distracted` : ""}</span>
         ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}</div>
       <span class="mono small">${fmtHM(s.durationSec)}</span>
+      <button class="icon-btn" data-editsess="${s.id}" aria-label="Edit session">✏️</button>
       <button class="icon-btn" data-delsess="${s.id}" aria-label="Delete session">✕</button></div>`;
   }
   if (list.length > shown.length) html += `<button class="btn sm" data-more style="margin-top:10px">Show more</button>`;
