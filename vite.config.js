@@ -13,6 +13,7 @@ export default defineConfig({
         name: "Dialed In — study tracker for students",
         short_name: "Dialed In",
         description: "Plan, focus and get dialed in. No sign-in; your study data stays on your device.",
+        categories: ["education", "productivity"],
         theme_color: "#002145",
         background_color: "#002145",
         display: "standalone",

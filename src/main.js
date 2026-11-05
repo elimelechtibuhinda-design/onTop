@@ -143,6 +143,8 @@ async function boot() {
   initFocus();
 
   const startApp = () => {
+    document.getElementById("about")?.remove();   // the intro is only for people who haven't set up yet
+    try { localStorage.setItem("dialedin-setup", "1"); } catch { /* ignore */ }   // hides it instantly on the next load
     shell();
     initSync();
     // Opened from a sync QR code / link: offer to join (the code stays in the #fragment, never sent anywhere).

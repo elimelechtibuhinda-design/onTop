@@ -4,13 +4,80 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#002145">
-  <meta name="description" content="Dialed In — a study tracker for students. Plan with SMART goals, focus with a timer, take real breaks. No sign-in; your study data stays on your device.">
+  <title>Dialed In — Free Study Timer, Planner &amp; Focus Tracker for Students</title>
+  <meta name="description" content="Dialed In is a free study app for students: a Pomodoro or free focus timer that tracks distraction, an exam and SMART-goal planner, flashcards with pictures and formulas, calm study music and break games. No account, no email.">
+  <link rel="canonical" href="https://imdialedin.app/">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-  <title>Dialed In</title>
+  <meta name="robots" content="index,follow">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Dialed In">
+  <meta property="og:url" content="https://imdialedin.app/">
+  <meta property="og:title" content="Dialed In — the free study app that keeps you focused">
+  <meta property="og:description" content="Focus timer that tracks distraction, exam planner, flashcards, calm music and break games. No account, no email — free.">
+  <meta property="og:image" content="https://imdialedin.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Dialed In — study timer, planner and flashcards for students">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Dialed In — the free study app that keeps you focused">
+  <meta name="twitter:description" content="Focus timer that tracks distraction, exam planner, flashcards, calm music and break games. No account, no email — free.">
+  <meta name="twitter:image" content="https://imdialedin.app/og-image.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Dialed In",
+    "url": "https://imdialedin.app/",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Any (web browser, installable on iPhone, Android, Mac and Windows)",
+    "description": "A free study app for students: focus timer with distraction tracking, exam and SMART-goal planner, flashcards, calm study music and break games. No account needed.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "featureList": "Pomodoro and free focus timer, distraction tracking, exam planner, SMART goals, flashcards with images and math formulas, calm study music, break games, study stats, offline use, encrypted sync between devices"
+  }
+  </script>
+  <style>
+    .about { background: #00122a; color: #dbe7f5; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 48px 20px 64px; }
+    .about > div { max-width: 760px; margin: 0 auto; }
+    .about h1 { color: #fff; font-size: 1.7rem; line-height: 1.25; margin: 0 0 10px; }
+    .about h2 { color: #F2A900; font-size: 1.1rem; margin: 28px 0 8px; }
+    .about ul { padding-left: 1.2em; margin: 0; }
+    .about li { margin: 4px 0; }
+    .about b { color: #fff; }
+    .about p { margin: 0 0 10px; }
+    .returning .about { display: none; }
+  </style>
+  <script>try { if (localStorage.getItem("dialedin-setup")) document.documentElement.classList.add("returning"); } catch (_) {}</script>
 </head>
 <body>
   <div id="app" aria-live="polite"><p id="boot-msg" style="font:600 16px system-ui,sans-serif;color:#52637a;text-align:center;margin-top:40vh">Loading Dialed In…</p></div>
+
+  <!-- What Dialed In is, for new visitors and search engines. Removed once someone has finished setup. -->
+  <section id="about" class="about" aria-labelledby="about-title"><div>
+    <h1 id="about-title">Dialed In — the free study app for students</h1>
+    <p>Dialed In helps you <b>focus</b>, <b>plan</b> and <b>actually study</b>. It runs in your browser and installs on your phone or laptop like an app. Free, with no account and no email.</p>
+    <h2>Focus</h2>
+    <ul>
+      <li>Pomodoro (25/5, 50/10 or your own lengths) or a free study timer</li>
+      <li>Pause when you get distracted. Dialed In tracks your distracted time separately from your study time</li>
+      <li>A pop-out mini timer that floats beside your other tabs and apps</li>
+      <li>Calm, sleep-style study music, soft guitar and quiet piano, plus focus sounds</li>
+    </ul>
+    <h2>Plan</h2>
+    <ul>
+      <li>Add your courses and exam dates and get a study plan for each exam</li>
+      <li>SMART goals, daily tasks and a weekly planner</li>
+      <li>Flashcards with pictures and math formulas, plus spaced review reminders</li>
+    </ul>
+    <h2>Stay motivated</h2>
+    <ul>
+      <li>Daily and weekly stats: focused vs distracted time, streaks and your best focus hours</li>
+      <li>XP, levels, ranks, badges and a garden that grows as you study</li>
+      <li>Short break games that lock when your break is over</li>
+    </ul>
+    <h2>Private by design</h2>
+    <p>No sign-up. Your study data stays on your device, works offline, and can sync between your devices with end-to-end encryption.</p>
+  </div></section>
   <script>
     // Right after a deploy, a cached copy of this page can point at code files that were just replaced.
     // If one fails to load, reload with a cache-busting query (up to twice) instead of showing a white page.
