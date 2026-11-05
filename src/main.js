@@ -57,7 +57,7 @@ function shell() {
   app.innerHTML = `
     <div class="app">
       <nav class="rail" aria-label="Main">
-        <div class="brand"><img src="./icon.svg" alt=""><b>Dialed<span> In</span></b></div>
+        <button class="brand" data-home aria-label="Dialed In — go to Today"><img src="./icon.svg" alt=""><b>Dialed<span> In</span></b></button>
         ${Object.entries(VIEWS).map(([id, v]) => `<button class="nav-btn" data-view="${id}"><span class="ico" aria-hidden="true">${v.icon}</span>${v.label}</button>`).join("")}
         <button class="nav-btn" data-focus style="margin-top:14px;background:var(--gold);color:#1a1300"><span class="ico">▶</span>Start focus</button>
         <div class="rail-foot">Your study data stays on this device 🔒</div>
@@ -70,6 +70,7 @@ function shell() {
   mainEl = document.getElementById("main");
   app.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
   app.querySelector("[data-focus]").addEventListener("click", () => openFocus({}));
+  app.querySelector("[data-home]").addEventListener("click", () => go("today"));
 }
 
 function go(view, opts = {}) {

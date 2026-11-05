@@ -119,11 +119,14 @@ let wrap, btn, bubbleEl, hideTimer, excitedUntil = 0, mutedUntil = 0;
 export function mountToppy() {
   wrap = document.createElement("div");
   wrap.className = "toppy-wrap";
-  wrap.innerHTML = `<div class="bubble-slot"></div><button class="toppy-btn" aria-label="Talk to Toppy"></button>`;
+  wrap.innerHTML = `<div class="bubble-slot"></div><button class="toppy-btn" aria-label="Toppy: go to Today, or talk to Toppy"></button>`;
   document.body.appendChild(wrap);
   btn = wrap.querySelector(".toppy-btn");
   btn.addEventListener("click", () => {
     if (bubbleEl) return hideBubble();
+    // Anywhere but Today, Toppy takes you home. On Today, Toppy talks.
+    const onToday = document.querySelector('[data-view="today"].active');
+    if (!onToday && !document.body.classList.contains("focus-open")) return emit("go", { view: "today" });
     say(line("poke"), {
       force: true,
       actions: [
